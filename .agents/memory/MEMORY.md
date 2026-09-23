@@ -1,1 +1,2 @@
 - [Maintenance mileage anchoring](maintenance-mileage-anchoring.md) — flexible maintenance due mileage stays anchored to last-change km, never current odometer.
+- [Vehicle service interval](vehicle-service-interval.md) — standard vehicle service due km follows current odometer plus the saved service interval.

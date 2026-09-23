@@ -24,12 +24,18 @@ export interface Vehicle {
   clientId: number;
   model: string;
   plate: string;
-  registrationExpiry: string;
-  insuranceExpiry: string;
-  lastServiceDate: string;
-  nextServiceDue: string;
+  /** @nullable */
+  registrationExpiry: string | null;
+  /** @nullable */
+  insuranceExpiry: string | null;
+  /** @nullable */
+  lastServiceDate: string | null;
+  /** @nullable */
+  nextServiceDue: string | null;
   /** @minimum 0 */
   currentOdometer: number;
+  /** @minimum 0 */
+  serviceIntervalKm: number;
   /** @minimum 0 */
   nextServiceDueOdometer: number;
   odometerUpdatedAt: string;
@@ -156,26 +162,39 @@ export interface Dashboard {
 }
 
 export interface VehicleInput {
-  model: string;
-  plate: string;
-  registrationExpiry: string;
-  insuranceExpiry: string;
+  model?: string;
+  plate?: string;
+  registrationExpiry?: string;
+  insuranceExpiry?: string;
   lastServiceDate?: string;
-  nextServiceDue: string;
+  nextServiceDue?: string;
   /** @minimum 0 */
-  currentOdometer: number;
+  currentOdometer?: number;
   /** @minimum 0 */
-  nextServiceDueOdometer: number;
+  serviceIntervalKm?: number;
+  /**
+     * Backward-compatible alias for serviceIntervalKm in older clients.
+     * @deprecated
+     * @minimum 0
+     */
+  nextServiceDueOdometer?: number;
 }
 
 export interface ClientInput {
+  /** @minLength 1 */
   name: string;
+  /**
+     * @minLength 7
+     * @maxLength 20
+     * @pattern ^\+?[0-9][0-9\s()\-]{6,19}$
+     */
   phone: string;
-  tier: string;
-  retainerAmount: number;
-  clientSince: string;
-  notes: string;
-  vehicles: VehicleInput[];
+  tier?: string;
+  /** @minimum 0 */
+  retainerAmount?: number;
+  clientSince?: string;
+  notes?: string;
+  vehicles?: VehicleInput[];
 }
 
 export interface ClientUpdate {

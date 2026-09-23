@@ -8,11 +8,18 @@
 import type { VehicleInput } from './vehicleInput';
 
 export interface ClientInput {
+  /** @minLength 1 */
   name: string;
+  /**
+     * @minLength 7
+     * @maxLength 20
+     * @pattern ^\+?[0-9][0-9\s()\-]{6,19}$
+     */
   phone: string;
-  tier: string;
-  retainerAmount: number;
-  clientSince: Date;
-  notes: string;
-  vehicles: VehicleInput[];
+  tier?: string;
+  /** @minimum 0 */
+  retainerAmount?: number;
+  clientSince?: Date;
+  notes?: string;
+  vehicles?: VehicleInput[];
 }

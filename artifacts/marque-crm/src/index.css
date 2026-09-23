@@ -376,6 +376,13 @@
     border-color: hsl(var(--primary));
     box-shadow: 0 0 0 3px hsl(var(--secondary) / .18);
   }
+  label:has(> [data-testid="input-new-vehicle-service-odometer"]) {
+    font-size: 0;
+  }
+  label:has(> [data-testid="input-new-vehicle-service-odometer"])::before {
+    content: "Service interval (km)";
+    font-size: 11px;
+  }
   .status-pill {
     display: inline-flex;
     align-items: center;

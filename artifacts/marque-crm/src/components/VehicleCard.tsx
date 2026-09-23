@@ -53,12 +53,12 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
   const [form, setForm] = useState<VehicleInput>({ 
     model: vehicle.model, 
     plate: vehicle.plate, 
-    registrationExpiry: vehicle.registrationExpiry.slice(0, 10), 
-    insuranceExpiry: vehicle.insuranceExpiry.slice(0, 10), 
-    lastServiceDate: vehicle.lastServiceDate.slice(0, 10), 
-    nextServiceDue: vehicle.nextServiceDue.slice(0, 10), 
+    registrationExpiry: vehicle.registrationExpiry?.slice(0, 10),
+    insuranceExpiry: vehicle.insuranceExpiry?.slice(0, 10),
+    lastServiceDate: vehicle.lastServiceDate?.slice(0, 10),
+    nextServiceDue: vehicle.nextServiceDue?.slice(0, 10),
     currentOdometer: vehicle.currentOdometer, 
-    nextServiceDueOdometer: vehicle.nextServiceDueOdometer 
+    serviceIntervalKm: vehicle.serviceIntervalKm,
   });
   const [odometerForm, setOdometerForm] = useState(vehicle.currentOdometer);
   const [uploadingMulkiya, setUploadingMulkiya] = useState(false);
@@ -185,8 +185,8 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="font-serif text-xl">{vehicle.model}</h3>
-              <p className="mt-1 font-mono text-[11px] tracking-[.12em] text-muted-foreground">{vehicle.plate}</p>
+              <h3 className="font-serif text-xl">{vehicle.model || 'Vehicle details pending'}</h3>
+              <p className="mt-1 font-mono text-[11px] tracking-[.12em] text-muted-foreground">{vehicle.plate || 'Plate not set'}</p>
             </div>
             <div className="flex items-center gap-3">
               <StatusPill status={vehicle.overallStatus} label={vehicle.overallStatus === 'green' ? 'Clear' : vehicle.overallStatus === 'amber' ? 'Review' : 'Action'} />
@@ -200,13 +200,14 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
       
       {editing ? (
         <div className="mt-6 grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
-          <label className="field-label sm:col-span-2">Make and model<input className="field-input" value={form.model} onChange={(event) => setForm((current) => ({ ...current, model: event.target.value }))} data-testid={`input-edit-vehicle-model-${vehicle.id}`} /></label>
-          <label className="field-label">Plate<input className="field-input" value={form.plate} onChange={(event) => setForm((current) => ({ ...current, plate: event.target.value }))} data-testid={`input-edit-vehicle-plate-${vehicle.id}`} /></label>
-          <label className="field-label">Registration<input type="date" className="field-input" value={form.registrationExpiry} onChange={(event) => setForm((current) => ({ ...current, registrationExpiry: event.target.value }))} data-testid={`input-edit-registration-${vehicle.id}`} /></label>
-          <label className="field-label">Insurance<input type="date" className="field-input" value={form.insuranceExpiry} onChange={(event) => setForm((current) => ({ ...current, insuranceExpiry: event.target.value }))} data-testid={`input-edit-insurance-${vehicle.id}`} /></label>
-          <label className="field-label">Next service date<input type="date" className="field-input" value={form.nextServiceDue} onChange={(event) => setForm((current) => ({ ...current, nextServiceDue: event.target.value }))} data-testid={`input-edit-service-${vehicle.id}`} /></label>
-          <label className="field-label">Current Odometer (km)<input type="number" className="field-input" value={form.currentOdometer} onChange={(event) => setForm((current) => ({ ...current, currentOdometer: Number(event.target.value) }))} data-testid={`input-edit-current-odometer-${vehicle.id}`} /></label>
-          <label className="field-label">Next service due (km)<input type="number" className="field-input" value={form.nextServiceDueOdometer} onChange={(event) => setForm((current) => ({ ...current, nextServiceDueOdometer: Number(event.target.value) }))} data-testid={`input-edit-service-odometer-${vehicle.id}`} /></label>
+          <label className="field-label sm:col-span-2">Make and model<input className="field-input" value={form.model ?? ''} onChange={(event) => setForm((current) => ({ ...current, model: event.target.value || undefined }))} data-testid={`input-edit-vehicle-model-${vehicle.id}`} /></label>
+          <label className="field-label">Plate<input className="field-input" value={form.plate ?? ''} onChange={(event) => setForm((current) => ({ ...current, plate: event.target.value || undefined }))} data-testid={`input-edit-vehicle-plate-${vehicle.id}`} /></label>
+          <label className="field-label">Registration<input type="date" className="field-input" value={form.registrationExpiry ?? ''} onChange={(event) => setForm((current) => ({ ...current, registrationExpiry: event.target.value || undefined }))} data-testid={`input-edit-registration-${vehicle.id}`} /></label>
+          <label className="field-label">Insurance<input type="date" className="field-input" value={form.insuranceExpiry ?? ''} onChange={(event) => setForm((current) => ({ ...current, insuranceExpiry: event.target.value || undefined }))} data-testid={`input-edit-insurance-${vehicle.id}`} /></label>
+          <label className="field-label">Next service date<input type="date" className="field-input" value={form.nextServiceDue ?? ''} onChange={(event) => setForm((current) => ({ ...current, nextServiceDue: event.target.value || undefined }))} data-testid={`input-edit-service-${vehicle.id}`} /></label>
+          <label className="field-label">Current odometer (km)<input type="number" min="0" className="field-input" value={form.currentOdometer ?? ''} onChange={(event) => setForm((current) => ({ ...current, currentOdometer: event.target.value === '' ? undefined : Number(event.target.value) }))} data-testid={`input-edit-current-odometer-${vehicle.id}`} /></label>
+          <label className="field-label">Service interval (km)<input type="number" min="0" className="field-input" value={form.serviceIntervalKm ?? ''} onChange={(event) => setForm((current) => ({ ...current, serviceIntervalKm: event.target.value === '' ? undefined : Number(event.target.value) }))} data-testid={`input-edit-service-interval-${vehicle.id}`} /></label>
+          <label className="field-label">Calculated next service due (km)<input type="number" className="field-input bg-muted opacity-70 cursor-not-allowed" readOnly value={form.serviceIntervalKm ? (form.currentOdometer ?? 0) + form.serviceIntervalKm : ''} data-testid={`input-edit-service-odometer-${vehicle.id}`} /></label>
           <div className="sm:col-span-2 flex justify-end">
             <button type="button" onClick={save} disabled={updateVehicle.isPending} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[.13em] text-primary-foreground disabled:opacity-50" data-testid={`button-save-vehicle-${vehicle.id}`}>
               {updateVehicle.isPending ? 'Saving' : 'Save vehicle'}
@@ -243,6 +244,13 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
               </div>
             ))}
           </div>
+          {vehicle.serviceIntervalKm > 0 && (
+            <p className="mb-6 text-xs text-muted-foreground">
+              Service interval: <span className="font-mono text-foreground">{vehicle.serviceIntervalKm.toLocaleString()} km</span>
+              <span className="mx-2 text-border">·</span>
+              Next due at <span className="font-mono text-foreground">{vehicle.nextServiceDueOdometer.toLocaleString()} km</span>
+            </p>
+          )}
 
           <div className="mb-6">
             <h4 className="text-[10px] font-bold uppercase tracking-[.15em] text-muted-foreground mb-3 flex items-center gap-2">

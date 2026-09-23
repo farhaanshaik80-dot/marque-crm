@@ -22,6 +22,8 @@ export const HealthCheckResponse = zod.object({
  */
 export const getDashboardResponseClientsItemTwoVehiclesItemOneCurrentOdometerMin = 0;
 
+export const getDashboardResponseClientsItemTwoVehiclesItemOneServiceIntervalKmMin = 0;
+
 export const getDashboardResponseClientsItemTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
 export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
@@ -49,11 +51,12 @@ export const GetDashboardResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -104,6 +107,8 @@ export const GetDashboardResponse = zod.object({
  */
 export const listClientsResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
 
+export const listClientsResponseTwoVehiclesItemOneServiceIntervalKmMin = 0;
+
 export const listClientsResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
 export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
@@ -130,11 +135,12 @@ export const ListClientsResponseItem = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(listClientsResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(listClientsResponseTwoVehiclesItemOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(listClientsResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -179,32 +185,45 @@ export const ListClientsResponse = zod.array(ListClientsResponseItem)
 /**
  * @summary Create a client and optional first vehicle
  */
+
+export const createClientBodyPhoneMin = 7;
+export const createClientBodyPhoneMax = 20;
+
+
+export const createClientBodyPhoneRegExp = new RegExp('^\\+?[0-9][0-9\\s()\\-]{6,19}$');
+export const createClientBodyRetainerAmountMin = 0;
+
 export const createClientBodyVehiclesItemCurrentOdometerMin = 0;
+
+export const createClientBodyVehiclesItemServiceIntervalKmMin = 0;
 
 export const createClientBodyVehiclesItemNextServiceDueOdometerMin = 0;
 
 
 
 export const CreateClientBody = zod.object({
-  "name": zod.string(),
-  "phone": zod.string(),
-  "tier": zod.string(),
-  "retainerAmount": zod.number(),
-  "clientSince": zod.coerce.date(),
-  "notes": zod.string(),
+  "name": zod.string().min(1),
+  "phone": zod.string().min(createClientBodyPhoneMin).max(createClientBodyPhoneMax).regex(createClientBodyPhoneRegExp),
+  "tier": zod.string().optional(),
+  "retainerAmount": zod.number().min(createClientBodyRetainerAmountMin).optional(),
+  "clientSince": zod.coerce.date().optional(),
+  "notes": zod.string().optional(),
   "vehicles": zod.array(zod.object({
-  "model": zod.string(),
-  "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
+  "model": zod.string().optional(),
+  "plate": zod.string().optional(),
+  "registrationExpiry": zod.coerce.date().optional(),
+  "insuranceExpiry": zod.coerce.date().optional(),
   "lastServiceDate": zod.coerce.date().optional(),
-  "nextServiceDue": zod.coerce.date(),
-  "currentOdometer": zod.number().int().min(createClientBodyVehiclesItemCurrentOdometerMin),
-  "nextServiceDueOdometer": zod.number().int().min(createClientBodyVehiclesItemNextServiceDueOdometerMin)
-}))
+  "nextServiceDue": zod.coerce.date().optional(),
+  "currentOdometer": zod.number().int().min(createClientBodyVehiclesItemCurrentOdometerMin).optional(),
+  "serviceIntervalKm": zod.number().int().min(createClientBodyVehiclesItemServiceIntervalKmMin).optional(),
+  "nextServiceDueOdometer": zod.number().int().min(createClientBodyVehiclesItemNextServiceDueOdometerMin).optional().describe('Backward-compatible alias for serviceIntervalKm in older clients.')
+})).optional()
 })
 
 export const createClientResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
+
+export const createClientResponseTwoVehiclesItemOneServiceIntervalKmMin = 0;
 
 export const createClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
@@ -232,11 +251,12 @@ export const CreateClientResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(createClientResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(createClientResponseTwoVehiclesItemOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(createClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -300,6 +320,8 @@ export const GetClientParams = zod.object({
 
 export const getClientResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
 
+export const getClientResponseTwoVehiclesItemOneServiceIntervalKmMin = 0;
+
 export const getClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
 export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
@@ -326,11 +348,12 @@ export const GetClientResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(getClientResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(getClientResponseTwoVehiclesItemOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(getClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -403,6 +426,8 @@ export const UpdateClientBody = zod.object({
 
 export const updateClientResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
 
+export const updateClientResponseTwoVehiclesItemOneServiceIntervalKmMin = 0;
+
 export const updateClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
 export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
@@ -429,11 +454,12 @@ export const UpdateClientResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(updateClientResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(updateClientResponseTwoVehiclesItemOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(updateClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -497,22 +523,27 @@ export const CreateVehicleParams = zod.object({
 
 export const createVehicleBodyCurrentOdometerMin = 0;
 
+export const createVehicleBodyServiceIntervalKmMin = 0;
+
 export const createVehicleBodyNextServiceDueOdometerMin = 0;
 
 
 
 export const CreateVehicleBody = zod.object({
-  "model": zod.string(),
-  "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
+  "model": zod.string().optional(),
+  "plate": zod.string().optional(),
+  "registrationExpiry": zod.coerce.date().optional(),
+  "insuranceExpiry": zod.coerce.date().optional(),
   "lastServiceDate": zod.coerce.date().optional(),
-  "nextServiceDue": zod.coerce.date(),
-  "currentOdometer": zod.number().int().min(createVehicleBodyCurrentOdometerMin),
-  "nextServiceDueOdometer": zod.number().int().min(createVehicleBodyNextServiceDueOdometerMin)
+  "nextServiceDue": zod.coerce.date().optional(),
+  "currentOdometer": zod.number().int().min(createVehicleBodyCurrentOdometerMin).optional(),
+  "serviceIntervalKm": zod.number().int().min(createVehicleBodyServiceIntervalKmMin).optional(),
+  "nextServiceDueOdometer": zod.number().int().min(createVehicleBodyNextServiceDueOdometerMin).optional().describe('Backward-compatible alias for serviceIntervalKm in older clients.')
 })
 
 export const createVehicleResponseCurrentOdometerMin = 0;
+
+export const createVehicleResponseServiceIntervalKmMin = 0;
 
 export const createVehicleResponseNextServiceDueOdometerMin = 0;
 
@@ -523,11 +554,12 @@ export const CreateVehicleResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(createVehicleResponseCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(createVehicleResponseServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(createVehicleResponseNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -547,22 +579,27 @@ export const UpdateVehicleParams = zod.object({
 
 export const updateVehicleBodyOneCurrentOdometerMin = 0;
 
+export const updateVehicleBodyOneServiceIntervalKmMin = 0;
+
 export const updateVehicleBodyOneNextServiceDueOdometerMin = 0;
 
 
 
 export const UpdateVehicleBody = zod.object({
-  "model": zod.string(),
-  "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
+  "model": zod.string().optional(),
+  "plate": zod.string().optional(),
+  "registrationExpiry": zod.coerce.date().optional(),
+  "insuranceExpiry": zod.coerce.date().optional(),
   "lastServiceDate": zod.coerce.date().optional(),
-  "nextServiceDue": zod.coerce.date(),
-  "currentOdometer": zod.number().int().min(updateVehicleBodyOneCurrentOdometerMin),
-  "nextServiceDueOdometer": zod.number().int().min(updateVehicleBodyOneNextServiceDueOdometerMin)
+  "nextServiceDue": zod.coerce.date().optional(),
+  "currentOdometer": zod.number().int().min(updateVehicleBodyOneCurrentOdometerMin).optional(),
+  "serviceIntervalKm": zod.number().int().min(updateVehicleBodyOneServiceIntervalKmMin).optional(),
+  "nextServiceDueOdometer": zod.number().int().min(updateVehicleBodyOneNextServiceDueOdometerMin).optional().describe('Backward-compatible alias for serviceIntervalKm in older clients.')
 })
 
 export const updateVehicleResponseCurrentOdometerMin = 0;
+
+export const updateVehicleResponseServiceIntervalKmMin = 0;
 
 export const updateVehicleResponseNextServiceDueOdometerMin = 0;
 
@@ -573,11 +610,12 @@ export const UpdateVehicleResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(updateVehicleResponseCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(updateVehicleResponseServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(updateVehicleResponseNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -657,6 +695,8 @@ export const UpdateVehicleOdometerBody = zod.object({
 
 export const updateVehicleOdometerResponseOneCurrentOdometerMin = 0;
 
+export const updateVehicleOdometerResponseOneServiceIntervalKmMin = 0;
+
 export const updateVehicleOdometerResponseOneNextServiceDueOdometerMin = 0;
 
 export const updateVehicleOdometerResponseTwoMaintenanceItemsItemCostAedMin = 0;
@@ -674,11 +714,12 @@ export const UpdateVehicleOdometerResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(updateVehicleOdometerResponseOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(updateVehicleOdometerResponseOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(updateVehicleOdometerResponseOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),
@@ -973,6 +1014,8 @@ export const UpdateVehicleMulkiyaBody = zod.object({
 
 export const updateVehicleMulkiyaResponseOneCurrentOdometerMin = 0;
 
+export const updateVehicleMulkiyaResponseOneServiceIntervalKmMin = 0;
+
 export const updateVehicleMulkiyaResponseOneNextServiceDueOdometerMin = 0;
 
 export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCostAedMin = 0;
@@ -990,11 +1033,12 @@ export const UpdateVehicleMulkiyaResponse = zod.object({
   "clientId": zod.number().int(),
   "model": zod.string(),
   "plate": zod.string(),
-  "registrationExpiry": zod.coerce.date(),
-  "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date(),
+  "registrationExpiry": zod.coerce.date().nullable(),
+  "insuranceExpiry": zod.coerce.date().nullable(),
+  "lastServiceDate": zod.coerce.date().nullable(),
+  "nextServiceDue": zod.coerce.date().nullable(),
   "currentOdometer": zod.number().int().min(updateVehicleMulkiyaResponseOneCurrentOdometerMin),
+  "serviceIntervalKm": zod.number().int().min(updateVehicleMulkiyaResponseOneServiceIntervalKmMin),
   "nextServiceDueOdometer": zod.number().int().min(updateVehicleMulkiyaResponseOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
   "odometerLastAskedAt": zod.coerce.date().nullable(),

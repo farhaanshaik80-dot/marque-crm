@@ -580,17 +580,18 @@ components:
                 $ref: "#/components/schemas/Reminder"
     Vehicle:
       type: object
-      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue, currentOdometer, nextServiceDueOdometer, odometerUpdatedAt, odometerLastAskedAt, mulkiyaImagePath]
+      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue, currentOdometer, serviceIntervalKm, nextServiceDueOdometer, odometerUpdatedAt, odometerLastAskedAt, mulkiyaImagePath]
       properties:
         id: { type: integer }
         clientId: { type: integer }
         model: { type: string }
         plate: { type: string }
-        registrationExpiry: { type: string, format: date }
-        insuranceExpiry: { type: string, format: date }
-        lastServiceDate: { type: string, format: date }
-        nextServiceDue: { type: string, format: date }
+        registrationExpiry: { type: ["string", "null"], format: date }
+        insuranceExpiry: { type: ["string", "null"], format: date }
+        lastServiceDate: { type: ["string", "null"], format: date }
+        nextServiceDue: { type: ["string", "null"], format: date }
         currentOdometer: { type: integer, minimum: 0 }
+        serviceIntervalKm: { type: integer, minimum: 0 }
         nextServiceDueOdometer: { type: integer, minimum: 0 }
         odometerUpdatedAt: { type: string, format: date-time }
         odometerLastAskedAt: { type: ["string", "null"], format: date-time }
@@ -669,12 +670,16 @@ components:
         sentThisMonth: { type: integer }
     ClientInput:
       type: object
-      required: [name, phone, tier, retainerAmount, clientSince, notes, vehicles]
+      required: [name, phone]
       properties:
-        name: { type: string }
-        phone: { type: string }
+        name: { type: string, minLength: 1 }
+        phone:
+          type: string
+          minLength: 7
+          maxLength: 20
+          pattern: '^\+?[0-9][0-9\s()\-]{6,19}$'
         tier: { type: string }
-        retainerAmount: { type: number }
+        retainerAmount: { type: number, minimum: 0 }
         clientSince: { type: string, format: date }
         notes: { type: string }
         vehicles:
@@ -693,7 +698,6 @@ components:
         notes: { type: string }
     VehicleInput:
       type: object
-      required: [model, plate, registrationExpiry, insuranceExpiry, nextServiceDue, currentOdometer, nextServiceDueOdometer]
       properties:
         model: { type: string }
         plate: { type: string }
@@ -702,7 +706,12 @@ components:
         lastServiceDate: { type: string, format: date }
         nextServiceDue: { type: string, format: date }
         currentOdometer: { type: integer, minimum: 0 }
-        nextServiceDueOdometer: { type: integer, minimum: 0 }
+        serviceIntervalKm: { type: integer, minimum: 0 }
+        nextServiceDueOdometer:
+          type: integer
+          minimum: 0
+          deprecated: true
+          description: Backward-compatible alias for serviceIntervalKm in older clients.
     VehicleUpdate:
       allOf:
         - $ref: "#/components/schemas/VehicleInput"

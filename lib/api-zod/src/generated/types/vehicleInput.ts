@@ -7,14 +7,20 @@
  */
 
 export interface VehicleInput {
-  model: string;
-  plate: string;
-  registrationExpiry: Date;
-  insuranceExpiry: Date;
+  model?: string;
+  plate?: string;
+  registrationExpiry?: Date;
+  insuranceExpiry?: Date;
   lastServiceDate?: Date;
-  nextServiceDue: Date;
+  nextServiceDue?: Date;
   /** @minimum 0 */
-  currentOdometer: number;
+  currentOdometer?: number;
   /** @minimum 0 */
-  nextServiceDueOdometer: number;
+  serviceIntervalKm?: number;
+  /**
+     * Backward-compatible alias for serviceIntervalKm in older clients.
+     * @deprecated
+     * @minimum 0
+     */
+  nextServiceDueOdometer?: number;
 }

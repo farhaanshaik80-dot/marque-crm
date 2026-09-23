@@ -11,12 +11,18 @@ export interface Vehicle {
   clientId: number;
   model: string;
   plate: string;
-  registrationExpiry: Date;
-  insuranceExpiry: Date;
-  lastServiceDate: Date;
-  nextServiceDue: Date;
+  /** @nullable */
+  registrationExpiry: Date | null;
+  /** @nullable */
+  insuranceExpiry: Date | null;
+  /** @nullable */
+  lastServiceDate: Date | null;
+  /** @nullable */
+  nextServiceDue: Date | null;
   /** @minimum 0 */
   currentOdometer: number;
+  /** @minimum 0 */
+  serviceIntervalKm: number;
   /** @minimum 0 */
   nextServiceDueOdometer: number;
   odometerUpdatedAt: Date;

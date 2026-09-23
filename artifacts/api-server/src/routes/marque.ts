@@ -53,6 +53,33 @@ function formatDate(value: Date | string): string {
   return value.toISOString().slice(0, 10);
 }
 
+function validationErrorMessage(error: { issues: Array<{ path: PropertyKey[]; code: string; message: string }> }): string {
+  const issue = error.issues[0];
+  const field = String(issue?.path.at(-1) ?? "request");
+  const labels: Record<string, string> = {
+    name: "Client name",
+    phone: "Phone number",
+    tier: "Tier",
+    retainerAmount: "Retainer amount",
+    clientSince: "Client since date",
+    model: "Vehicle make/model",
+    plate: "Plate",
+    registrationExpiry: "Registration expiry",
+    insuranceExpiry: "Insurance expiry",
+    lastServiceDate: "Last service date",
+    nextServiceDue: "Next service due date",
+    currentOdometer: "Current odometer",
+    serviceIntervalKm: "Service interval",
+    nextServiceDueOdometer: "Service interval",
+  };
+  const label = labels[field] ?? field;
+  if (field === "phone") return "Phone number format invalid. Use digits and optional spaces, brackets, hyphens, or a leading +.";
+  if (issue?.code === "invalid_type") return `${label} is invalid.`;
+  if (issue?.code === "too_small") return `${label} is too short or below the allowed minimum.`;
+  if (issue?.code === "too_big") return `${label} exceeds the allowed maximum.`;
+  return `${label}: ${issue?.message ?? "invalid value"}`;
+}
+
 function daysUntil(dateValue: string): number {
   const today = new Date();
   const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
@@ -124,6 +151,7 @@ async function seedIfEmptyInternal(): Promise<void> {
       lastServiceDate: dateForOffset(-174),
       nextServiceDue: dateForOffset(6),
       currentOdometer: 42000,
+      serviceIntervalKm: 3000,
       nextServiceDueOdometer: 45000,
     },
     {
@@ -135,6 +163,7 @@ async function seedIfEmptyInternal(): Promise<void> {
       lastServiceDate: dateForOffset(-112),
       nextServiceDue: dateForOffset(21),
       currentOdometer: 28000,
+      serviceIntervalKm: 2000,
       nextServiceDueOdometer: 30000,
     },
     {
@@ -146,6 +175,7 @@ async function seedIfEmptyInternal(): Promise<void> {
       lastServiceDate: dateForOffset(-201),
       nextServiceDue: dateForOffset(64),
       currentOdometer: 51000,
+      serviceIntervalKm: 4000,
       nextServiceDueOdometer: 55000,
     },
   ]);
@@ -190,11 +220,18 @@ function buildVehicleStatus(
   sentKeys: Set<string>,
   history: Array<typeof vehicleUpdateHistoryTable.$inferSelect> = [],
 ) {
-  const rawDueItems: Array<{ kind: DueKind; label: string; dueDate: string | null; dueOdometer?: number | null; key: string }> = [
-    { kind: "registration", label: "Registration", dueDate: vehicle.registrationExpiry, dueOdometer: null, key: `registration-${vehicle.registrationExpiry}` },
-    { kind: "insurance", label: "Insurance", dueDate: vehicle.insuranceExpiry, dueOdometer: null, key: `insurance-${vehicle.insuranceExpiry}` },
-    { kind: "service", label: "Service due", dueDate: vehicle.nextServiceDue, dueOdometer: vehicle.nextServiceDueOdometer, key: `service-${vehicle.nextServiceDue}-${vehicle.nextServiceDueOdometer}` },
-  ];
+  const rawDueItems: Array<{ kind: DueKind; label: string; dueDate: string | null; dueOdometer?: number | null; key: string }> = [];
+  if (vehicle.registrationExpiry) rawDueItems.push({ kind: "registration", label: "Registration", dueDate: vehicle.registrationExpiry, dueOdometer: null, key: `registration-${vehicle.registrationExpiry}` });
+  if (vehicle.insuranceExpiry) rawDueItems.push({ kind: "insurance", label: "Insurance", dueDate: vehicle.insuranceExpiry, dueOdometer: null, key: `insurance-${vehicle.insuranceExpiry}` });
+  if (vehicle.nextServiceDue || vehicle.serviceIntervalKm > 0) {
+    rawDueItems.push({
+      kind: "service",
+      label: "Service due",
+      dueDate: vehicle.nextServiceDue,
+      dueOdometer: vehicle.serviceIntervalKm > 0 ? vehicle.nextServiceDueOdometer : null,
+      key: `service-${vehicle.nextServiceDue ?? "no-date"}-${vehicle.nextServiceDueOdometer}`,
+    });
+  }
   const anchor = Math.max(vehicle.odometerUpdatedAt.getTime(), vehicle.odometerLastAskedAt?.getTime() ?? 0);
   if (Date.now() - anchor >= 15 * DAY_MS) rawDueItems.push({ kind: "odometer-checkin", label: `Ask ${clientName} for their current km`, dueDate: null, dueOdometer: null, key: `odometer-checkin-${new Date(anchor).toISOString().slice(0, 10)}` });
   const dueItems = rawDueItems
@@ -233,6 +270,7 @@ function buildVehicleStatus(
     lastServiceDate: vehicle.lastServiceDate,
     nextServiceDue: vehicle.nextServiceDue,
     currentOdometer: vehicle.currentOdometer,
+    serviceIntervalKm: vehicle.serviceIntervalKm,
     nextServiceDueOdometer: vehicle.nextServiceDueOdometer,
     odometerUpdatedAt: vehicle.odometerUpdatedAt,
     odometerLastAskedAt: vehicle.odometerLastAskedAt,
@@ -353,31 +391,35 @@ router.get("/clients", async (_req, res): Promise<void> => {
 router.post("/clients", async (req, res): Promise<void> => {
   const parsed = CreateClientBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorMessage(parsed.error) });
     return;
   }
+  const today = formatDate(new Date());
   const [client] = await db
     .insert(clientsTable)
     .values({
-      name: parsed.data.name,
-      phone: parsed.data.phone,
-      tier: parsed.data.tier,
-      retainerAmount: String(parsed.data.retainerAmount),
-      clientSince: formatDate(parsed.data.clientSince),
-      notes: parsed.data.notes,
+      name: parsed.data.name.trim(),
+      phone: parsed.data.phone.trim(),
+      tier: parsed.data.tier?.trim() || "Signature",
+      retainerAmount: String(parsed.data.retainerAmount ?? 0),
+      clientSince: parsed.data.clientSince ? formatDate(parsed.data.clientSince) : today,
+      notes: parsed.data.notes?.trim() ?? "",
     })
     .returning();
-  for (const vehicle of parsed.data.vehicles) {
+  for (const vehicle of parsed.data.vehicles ?? []) {
+    const currentOdometer = vehicle.currentOdometer ?? 0;
+    const serviceIntervalKm = vehicle.serviceIntervalKm ?? vehicle.nextServiceDueOdometer ?? 0;
     await db.insert(vehiclesTable).values({
       clientId: client.id,
-      model: vehicle.model,
-      plate: vehicle.plate,
-      registrationExpiry: formatDate(vehicle.registrationExpiry),
-      insuranceExpiry: formatDate(vehicle.insuranceExpiry),
-      lastServiceDate: vehicle.lastServiceDate ? formatDate(vehicle.lastServiceDate) : formatDate(new Date()),
-      nextServiceDue: formatDate(vehicle.nextServiceDue),
-      currentOdometer: vehicle.currentOdometer,
-      nextServiceDueOdometer: vehicle.nextServiceDueOdometer,
+      model: vehicle.model?.trim() ?? "",
+      plate: vehicle.plate?.trim() ?? "",
+      registrationExpiry: vehicle.registrationExpiry ? formatDate(vehicle.registrationExpiry) : null,
+      insuranceExpiry: vehicle.insuranceExpiry ? formatDate(vehicle.insuranceExpiry) : null,
+      lastServiceDate: vehicle.lastServiceDate ? formatDate(vehicle.lastServiceDate) : null,
+      nextServiceDue: vehicle.nextServiceDue ? formatDate(vehicle.nextServiceDue) : null,
+      currentOdometer,
+      serviceIntervalKm,
+      nextServiceDueOdometer: serviceIntervalKm > 0 ? currentOdometer + serviceIntervalKm : 0,
     });
   }
   res.status(201).json(CreateClientResponse.parse(await getClientDetail(client.id)));
@@ -435,21 +477,24 @@ router.post("/clients/:id/vehicles", async (req, res): Promise<void> => {
     return;
   }
   if (!body.success) {
-    res.status(400).json({ error: body.error.message });
+    res.status(400).json({ error: validationErrorMessage(body.error) });
     return;
   }
+  const currentOdometer = body.data.currentOdometer ?? 0;
+  const serviceIntervalKm = body.data.serviceIntervalKm ?? body.data.nextServiceDueOdometer ?? 0;
   const [vehicle] = await db
     .insert(vehiclesTable)
     .values({
       clientId: params.data.id,
-      model: body.data.model,
-      plate: body.data.plate,
-      registrationExpiry: formatDate(body.data.registrationExpiry),
-      insuranceExpiry: formatDate(body.data.insuranceExpiry),
-      lastServiceDate: body.data.lastServiceDate ? formatDate(body.data.lastServiceDate) : formatDate(new Date()),
-      nextServiceDue: formatDate(body.data.nextServiceDue),
-      currentOdometer: body.data.currentOdometer,
-      nextServiceDueOdometer: body.data.nextServiceDueOdometer,
+      model: body.data.model?.trim() ?? "",
+      plate: body.data.plate?.trim() ?? "",
+      registrationExpiry: body.data.registrationExpiry ? formatDate(body.data.registrationExpiry) : null,
+      insuranceExpiry: body.data.insuranceExpiry ? formatDate(body.data.insuranceExpiry) : null,
+      lastServiceDate: body.data.lastServiceDate ? formatDate(body.data.lastServiceDate) : null,
+      nextServiceDue: body.data.nextServiceDue ? formatDate(body.data.nextServiceDue) : null,
+      currentOdometer,
+      serviceIntervalKm,
+      nextServiceDueOdometer: serviceIntervalKm > 0 ? currentOdometer + serviceIntervalKm : 0,
     })
     .returning();
   const client = await db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId));
@@ -473,23 +518,29 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
     return;
   }
   const [vehicle] = await db.transaction(async (tx) => {
-    const candidates: Array<[string, string | number, string | number]> = [
-      ["current_odometer_km", existing.currentOdometer, body.data.currentOdometer],
-      ["registration_expiry", existing.registrationExpiry, formatDate(body.data.registrationExpiry)],
-      ["insurance_expiry", existing.insuranceExpiry, formatDate(body.data.insuranceExpiry)],
-      ["next_service_due", existing.nextServiceDue, formatDate(body.data.nextServiceDue)],
+    const nextCurrentOdometer = body.data.currentOdometer ?? existing.currentOdometer;
+    const nextServiceIntervalKm = body.data.serviceIntervalKm ?? body.data.nextServiceDueOdometer ?? existing.serviceIntervalKm;
+    const nextRegistrationExpiry = body.data.registrationExpiry ? formatDate(body.data.registrationExpiry) : existing.registrationExpiry;
+    const nextInsuranceExpiry = body.data.insuranceExpiry ? formatDate(body.data.insuranceExpiry) : existing.insuranceExpiry;
+    const nextServiceDue = body.data.nextServiceDue ? formatDate(body.data.nextServiceDue) : existing.nextServiceDue;
+    const candidates: Array<[string, string | number | null, string | number | null]> = [
+      ["current_odometer_km", existing.currentOdometer, nextCurrentOdometer],
+      ["registration_expiry", existing.registrationExpiry, nextRegistrationExpiry],
+      ["insurance_expiry", existing.insuranceExpiry, nextInsuranceExpiry],
+      ["next_service_due", existing.nextServiceDue, nextServiceDue],
     ];
     const changed = candidates.filter(([, oldValue, newValue]) => oldValue !== newValue);
     const [updated] = await tx.update(vehiclesTable).set({
-      model: body.data.model,
-      plate: body.data.plate,
-      registrationExpiry: formatDate(body.data.registrationExpiry),
-      insuranceExpiry: formatDate(body.data.insuranceExpiry),
-      lastServiceDate: formatDate(body.data.lastServiceDate ?? new Date()),
-      nextServiceDue: formatDate(body.data.nextServiceDue),
-      currentOdometer: body.data.currentOdometer,
-      nextServiceDueOdometer: body.data.nextServiceDueOdometer,
-      ...(body.data.currentOdometer !== existing.currentOdometer ? { odometerUpdatedAt: new Date() } : {}),
+      model: body.data.model ?? existing.model,
+      plate: body.data.plate ?? existing.plate,
+      registrationExpiry: nextRegistrationExpiry,
+      insuranceExpiry: nextInsuranceExpiry,
+      lastServiceDate: body.data.lastServiceDate ? formatDate(body.data.lastServiceDate) : existing.lastServiceDate,
+      nextServiceDue,
+      currentOdometer: nextCurrentOdometer,
+      serviceIntervalKm: nextServiceIntervalKm,
+      nextServiceDueOdometer: nextServiceIntervalKm > 0 ? nextCurrentOdometer + nextServiceIntervalKm : 0,
+      ...(nextCurrentOdometer !== existing.currentOdometer ? { odometerUpdatedAt: new Date() } : {}),
     }).where(eq(vehiclesTable.id, params.data.id)).returning();
     if (changed.length) await tx.insert(vehicleUpdateHistoryTable).values(changed.map(([fieldChanged, oldValue, newValue]) => ({ vehicleId: existing.id, fieldChanged, oldValue: String(oldValue), newValue: String(newValue) })));
     return [updated];
@@ -515,7 +566,8 @@ router.patch("/vehicles/:id/odometer", async (req, res): Promise<void> => {
   const [vehicle] = await db.transaction(async (tx) => {
     const [current] = await tx.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
     if (!current) return [];
-    const [updated] = await tx.update(vehiclesTable).set({ currentOdometer: body.data.currentOdometer, odometerUpdatedAt: new Date() }).where(eq(vehiclesTable.id, params.data.id)).returning();
+    const nextServiceDueOdometer = current.serviceIntervalKm > 0 ? body.data.currentOdometer + current.serviceIntervalKm : 0;
+    const [updated] = await tx.update(vehiclesTable).set({ currentOdometer: body.data.currentOdometer, nextServiceDueOdometer, odometerUpdatedAt: new Date() }).where(eq(vehiclesTable.id, params.data.id)).returning();
     await tx.insert(vehicleUpdateHistoryTable).values({ vehicleId: current.id, fieldChanged: "current_odometer_km", oldValue: String(current.currentOdometer), newValue: String(body.data.currentOdometer) });
     const items = await tx.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, current.id));
     for (const item of items) await tx.update(maintenanceItemsTable).set({ nextDueKm: item.lastChangedKm + item.changeIntervalKm }).where(eq(maintenanceItemsTable.id, item.id));

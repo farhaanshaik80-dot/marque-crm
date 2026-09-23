@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Marque CRM"
+description = "A focused client and vehicle management workspace for a luxury car concierge trial group, with due-date monitoring, reminder drafting, and WhatsApp handoff."
+version = "1.0.0"
+id = "artifacts/marque-crm"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23472
+
+[services.development]
+run = "pnpm --filter @workspace/marque-crm run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/marque-crm", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/marque-crm/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23472"
+BASE_PATH = "/"

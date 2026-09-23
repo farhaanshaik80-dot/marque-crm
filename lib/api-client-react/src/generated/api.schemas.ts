@@ -137,24 +137,6 @@ export interface ReminderInput {
   messageText: string;
 }
 
-export interface AiIntakeInput {
-  /** @minLength 1 */
-  rawText: string;
-}
-
-export type AiIntakeResultDatesItem = {
-  kind: string;
-  date: string;
-};
-
-export interface AiIntakeResult {
-  name: string;
-  phone: string;
-  model: string;
-  plate: string;
-  dates: AiIntakeResultDatesItem[];
-}
-
 export interface DraftReminderInput {
   clientName: string;
   model: string;

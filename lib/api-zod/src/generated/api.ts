@@ -376,28 +376,6 @@ export const MarkReminderSentResponse = zod.object({
 
 
 /**
- * @summary Extract client and vehicle details from raw text
- */
-
-
-
-export const ExtractClientIntakeBody = zod.object({
-  "rawText": zod.string().min(1)
-})
-
-export const ExtractClientIntakeResponse = zod.object({
-  "name": zod.string(),
-  "phone": zod.string(),
-  "model": zod.string(),
-  "plate": zod.string(),
-  "dates": zod.array(zod.object({
-  "kind": zod.string(),
-  "date": zod.coerce.date()
-}))
-})
-
-
-/**
  * @summary Draft a friendly WhatsApp reminder
  */
 export const DraftReminderBody = zod.object({

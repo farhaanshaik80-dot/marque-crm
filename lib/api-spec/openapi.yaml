@@ -15,7 +15,7 @@ tags:
   - name: reminders
     description: Reminder drafting and sending
   - name: ai
-    description: Gemini-powered intake and message drafting
+    description: Gemini-powered reminder drafting
 paths:
   /healthz:
     get:
@@ -182,24 +182,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Reminder"
-  /ai/intake:
-    post:
-      operationId: extractClientIntake
-      tags: [ai]
-      summary: Extract client and vehicle details from raw text
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AiIntakeInput"
-      responses:
-        "200":
-          description: Extracted fields
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AiIntakeResult"
   /ai/draft-reminder:
     post:
       operationId: draftReminder
@@ -373,27 +355,6 @@ components:
         clientId: { type: integer }
         vehicleId: { type: integer }
         messageText: { type: string }
-    AiIntakeInput:
-      type: object
-      required: [rawText]
-      properties:
-        rawText: { type: string, minLength: 1 }
-    AiIntakeResult:
-      type: object
-      required: [name, phone, model, plate, dates]
-      properties:
-        name: { type: string }
-        phone: { type: string }
-        model: { type: string }
-        plate: { type: string }
-        dates:
-          type: array
-          items:
-            type: object
-            required: [kind, date]
-            properties:
-              kind: { type: string }
-              date: { type: string, format: date }
     DraftReminderInput:
       type: object
       required: [clientName, model, plate, dueLabel, dueDate, daysUntilDue]

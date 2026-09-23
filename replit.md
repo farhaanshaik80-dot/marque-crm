@@ -38,12 +38,12 @@ Marque CRM helps a small luxury car concierge team manage client relationships, 
 ## Product
 
 - Dashboard shows all clients and vehicles, with soonest due dates first and green/amber/red status.
-- New-client flow accepts raw intake text, uses Gemini to prefill details, and requires review before saving.
+- New-client flow is a single direct form for client details and their first vehicle.
 - Client detail supports editing client and vehicle records, adding vehicles, viewing reminder history, drafting WhatsApp copy, opening WhatsApp, and marking messages sent.
 
 ## User preferences
 
-- Use Gemini through `GEMINI_API_KEY` for AI intake and reminder drafting.
+- Use Gemini through `GEMINI_API_KEY` for reminder drafting.
 
 ## Gotchas
 

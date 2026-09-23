@@ -20,8 +20,6 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
-  AiIntakeInput,
-  AiIntakeResult,
   ClientDetail,
   ClientInput,
   ClientSummary,
@@ -891,94 +889,6 @@ export const useMarkReminderSent = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getMarkReminderSentMutationOptions(options));
-    }
-
-export const getExtractClientIntakeUrl = () => {
-
-
-
-
-  return `/api/ai/intake`
-}
-
-/**
- * @summary Extract client and vehicle details from raw text
- */
-export const extractClientIntake = async (aiIntakeInput: AiIntakeInput, options?: Parameters<typeof customFetch>[1]): Promise<AiIntakeResult> => {
-
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<AiIntakeResult>(getExtractClientIntakeUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(aiIntakeInput)
-  }
-);}
-
-
-
-
-
-export const getExtractClientIntakeMutationKey = () => ['extractClientIntake'] as const;
-
-export const getExtractClientIntakeMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractClientIntake>>, TError,ExtractClientIntakeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof extractClientIntake>>, TError,ExtractClientIntakeMutationVariables, TContext> => {
-
-const mutationKey = getExtractClientIntakeMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof extractClientIntake>>, ExtractClientIntakeMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  extractClientIntake(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type ExtractClientIntakeMutationResult = NonNullable<Awaited<ReturnType<typeof extractClientIntake>>>
-    export type ExtractClientIntakeMutationBody = BodyType<AiIntakeInput>
-    export type ExtractClientIntakeMutationError = ErrorType<unknown>
-    export type ExtractClientIntakeMutationVariables = {data: BodyType<AiIntakeInput>}
-
-    /**
- * @summary Extract client and vehicle details from raw text
- */
-export const useExtractClientIntake = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof extractClientIntake>>, TError,ExtractClientIntakeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof extractClientIntake>>,
-        TError,
-        ExtractClientIntakeMutationVariables,
-        TContext
-      > => {
-      return useMutation(getExtractClientIntakeMutationOptions(options));
     }
 
 export const getDraftReminderUrl = () => {

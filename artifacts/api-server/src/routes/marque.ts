@@ -11,7 +11,6 @@ import {
   CreateVehicleBody,
   CreateVehicleParams,
   DraftReminderBody,
-  ExtractClientIntakeBody,
   GetClientParams,
   ListRemindersParams,
   MarkReminderSentBody,
@@ -28,7 +27,6 @@ import {
   UpdateVehicleResponse,
   ListRemindersResponse,
   MarkReminderSentResponse,
-  ExtractClientIntakeResponse,
   DraftReminderResponse,
 } from "@workspace/api-zod";
 
@@ -479,23 +477,6 @@ router.post("/reminders", async (req, res): Promise<void> => {
     .leftJoin(vehiclesTable, eq(remindersLogTable.vehicleId, vehiclesTable.id))
     .where(eq(remindersLogTable.id, reminder.id));
   res.status(201).json(MarkReminderSentResponse.parse(withVehicle));
-});
-
-router.post("/ai/intake", async (req, res): Promise<void> => {
-  const parsed = ExtractClientIntakeBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
-    return;
-  }
-  try {
-    const result = await callGemini(
-      `Extract structured CRM intake details from the following client message. Return only valid JSON with exactly this shape: {"name":"","phone":"","model":"","plate":"","dates":[{"kind":"registration|insurance|service|other","date":"YYYY-MM-DD"}]}. Infer nothing that is not present. For dates without a year, use the current year. Message:\n${parsed.data.rawText}`,
-    );
-    res.json(ExtractClientIntakeResponse.parse(JSON.parse(result)));
-  } catch (error) {
-    req.log.error({ err: error }, "Gemini intake failed");
-    res.status(502).json({ error: "Gemini could not process this intake. Check the Gemini API key and try again." });
-  }
 });
 
 router.post("/ai/draft-reminder", async (req, res): Promise<void> => {

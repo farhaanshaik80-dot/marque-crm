@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export * from './aiIntakeInput';
-export * from './aiIntakeResult';
-export * from './aiIntakeResultDatesItem';
 export * from './client';
 export * from './clientDetail';
 export * from './clientInput';

@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: clients
+    description: Client and vehicle management
+  - name: reminders
+    description: Reminder drafting and sending
+  - name: ai
+    description: Gemini-powered intake and message drafting
 paths:
   /healthz:
     get:
@@ -24,7 +30,203 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [clients]
+      summary: Get dashboard overview
+      responses:
+        "200":
+          description: Dashboard overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List clients with vehicles
+      responses:
+        "200":
+          description: Clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientSummary"
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a client and optional first vehicle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+      responses:
+        "201":
+          description: Created client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDetail"
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get a client and their vehicles
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Client detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDetail"
+        "404":
+          description: Client not found
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientUpdate"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDetail"
+  /clients/{id}/vehicles:
+    post:
+      operationId: createVehicle
+      tags: [clients]
+      summary: Add a vehicle to a client
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleInput"
+      responses:
+        "201":
+          description: Created vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+  /vehicles/{id}:
+    patch:
+      operationId: updateVehicle
+      tags: [clients]
+      summary: Update a vehicle
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleUpdate"
+      responses:
+        "200":
+          description: Updated vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+  /clients/{id}/reminders:
+    get:
+      operationId: listReminders
+      tags: [reminders]
+      summary: List reminder history for a client
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Reminder history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reminder"
+  /reminders:
+    post:
+      operationId: markReminderSent
+      tags: [reminders]
+      summary: Save a sent reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReminderInput"
+      responses:
+        "201":
+          description: Saved reminder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reminder"
+  /ai/intake:
+    post:
+      operationId: extractClientIntake
+      tags: [ai]
+      summary: Extract client and vehicle details from raw text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiIntakeInput"
+      responses:
+        "200":
+          description: Extracted fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiIntakeResult"
+  /ai/draft-reminder:
+    post:
+      operationId: draftReminder
+      tags: [ai]
+      summary: Draft a friendly WhatsApp reminder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DraftReminderInput"
+      responses:
+        "200":
+          description: Drafted message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DraftReminderResult"
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +235,178 @@ components:
           type: string
       required:
         - status
+    Client:
+      type: object
+      required: [id, name, phone, tier, retainerAmount, clientSince, notes]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        phone: { type: string }
+        tier: { type: string }
+        retainerAmount: { type: number }
+        clientSince: { type: string, format: date }
+        notes: { type: string }
+    ClientSummary:
+      allOf:
+        - $ref: "#/components/schemas/Client"
+        - type: object
+          required: [vehicles]
+          properties:
+            vehicles:
+              type: array
+              items:
+                $ref: "#/components/schemas/VehicleStatus"
+    ClientDetail:
+      allOf:
+        - $ref: "#/components/schemas/Client"
+        - type: object
+          required: [vehicles, reminders]
+          properties:
+            vehicles:
+              type: array
+              items:
+                $ref: "#/components/schemas/VehicleStatus"
+            reminders:
+              type: array
+              items:
+                $ref: "#/components/schemas/Reminder"
+    Vehicle:
+      type: object
+      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue]
+      properties:
+        id: { type: integer }
+        clientId: { type: integer }
+        model: { type: string }
+        plate: { type: string }
+        registrationExpiry: { type: string, format: date }
+        insuranceExpiry: { type: string, format: date }
+        lastServiceDate: { type: string, format: date }
+        nextServiceDue: { type: string, format: date }
+    VehicleStatus:
+      allOf:
+        - $ref: "#/components/schemas/Vehicle"
+        - type: object
+          required: [overallStatus, dueItems]
+          properties:
+            overallStatus:
+              type: string
+              enum: [green, amber, red]
+            dueItems:
+              type: array
+              items:
+                $ref: "#/components/schemas/DueItem"
+    DueItem:
+      type: object
+      required: [kind, label, dueDate, daysUntilDue, status]
+      properties:
+        kind: { type: string, enum: [registration, insurance, service] }
+        label: { type: string }
+        dueDate: { type: string, format: date }
+        daysUntilDue: { type: integer }
+        status: { type: string, enum: [green, amber, red] }
+        reminderSent: { type: boolean }
+    Reminder:
+      type: object
+      required: [id, clientId, vehicleId, messageText, draftedAt, sent]
+      properties:
+        id: { type: integer }
+        clientId: { type: integer }
+        vehicleId: { type: integer }
+        messageText: { type: string }
+        draftedAt: { type: string, format: date-time }
+        sent: { type: boolean }
+        sentAt: { type: ["string", "null"], format: date-time }
+        vehicleModel: { type: ["string", "null"] }
+    Dashboard:
+      type: object
+      required: [clients, totalClients, totalVehicles, dueSoonCount, sentThisMonth]
+      properties:
+        clients:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClientSummary"
+        totalClients: { type: integer }
+        totalVehicles: { type: integer }
+        dueSoonCount: { type: integer }
+        sentThisMonth: { type: integer }
+    ClientInput:
+      type: object
+      required: [name, phone, tier, retainerAmount, clientSince, notes, vehicles]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        tier: { type: string }
+        retainerAmount: { type: number }
+        clientSince: { type: string, format: date }
+        notes: { type: string }
+        vehicles:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleInput"
+    ClientUpdate:
+      type: object
+      required: [name, phone, tier, retainerAmount, clientSince, notes]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        tier: { type: string }
+        retainerAmount: { type: number }
+        clientSince: { type: string, format: date }
+        notes: { type: string }
+    VehicleInput:
+      type: object
+      required: [model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue]
+      properties:
+        model: { type: string }
+        plate: { type: string }
+        registrationExpiry: { type: string, format: date }
+        insuranceExpiry: { type: string, format: date }
+        lastServiceDate: { type: string, format: date }
+        nextServiceDue: { type: string, format: date }
+    VehicleUpdate:
+      allOf:
+        - $ref: "#/components/schemas/VehicleInput"
+    ReminderInput:
+      type: object
+      required: [clientId, vehicleId, messageText]
+      properties:
+        clientId: { type: integer }
+        vehicleId: { type: integer }
+        messageText: { type: string }
+    AiIntakeInput:
+      type: object
+      required: [rawText]
+      properties:
+        rawText: { type: string, minLength: 1 }
+    AiIntakeResult:
+      type: object
+      required: [name, phone, model, plate, dates]
+      properties:
+        name: { type: string }
+        phone: { type: string }
+        model: { type: string }
+        plate: { type: string }
+        dates:
+          type: array
+          items:
+            type: object
+            required: [kind, date]
+            properties:
+              kind: { type: string }
+              date: { type: string, format: date }
+    DraftReminderInput:
+      type: object
+      required: [clientName, model, plate, dueLabel, dueDate, daysUntilDue]
+      properties:
+        clientName: { type: string }
+        model: { type: string }
+        plate: { type: string }
+        dueLabel: { type: string }
+        dueDate: { type: string, format: date }
+        daysUntilDue: { type: integer }
+    DraftReminderResult:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
 

@@ -5,7 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { VehicleInput } from './vehicleInput';
 
-export interface HealthStatus {
-  status: string;
-}
+export type VehicleUpdate = VehicleInput;

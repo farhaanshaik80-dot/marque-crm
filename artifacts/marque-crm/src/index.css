@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @plugin "@tailwindcss/typography";
@@ -78,72 +79,72 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: red; /*replace with H S L */
+  --background: 39 33% 94%;
 
-  --foreground: red; /*replace with H S L */
+  --foreground: 220 21% 18%;
 
-  --border: red; /*replace with H S L */
+  --border: 38 18% 83%;
 
-  --card: red; /*replace with H S L */
+  --card: 39 40% 97%;
 
-  --card-foreground: red; /*replace with H S L */
+  --card-foreground: 220 21% 18%;
 
-  --card-border: red; /*replace with H S L */
+  --card-border: 38 18% 84%;
 
-  --sidebar: red; /*replace with H S L */
+  --sidebar: 220 22% 16%;
 
-  --sidebar-foreground: red; /*replace with H S L */
+  --sidebar-foreground: 39 33% 94%;
 
-  --sidebar-border: red; /*replace with H S L */
+  --sidebar-border: 220 16% 25%;
 
-  --sidebar-primary: red; /*replace with H S L */
+  --sidebar-primary: 42 53% 57%;
 
-  --sidebar-primary-foreground: red; /*replace with H S L */
+  --sidebar-primary-foreground: 220 22% 16%;
 
-  --sidebar-accent: red; /*replace with H S L */
+  --sidebar-accent: 220 18% 23%;
 
-  --sidebar-accent-foreground: red; /*replace with H S L */
+  --sidebar-accent-foreground: 39 33% 94%;
 
-  --sidebar-ring: red; /*replace with H S L */
+  --sidebar-ring: 42 53% 57%;
 
-  --popover: red; /*replace with H S L */
+  --popover: 39 40% 97%;
 
-  --popover-foreground: red; /*replace with H S L */
+  --popover-foreground: 220 21% 18%;
 
-  --popover-border: red; /*replace with H S L */
+  --popover-border: 38 18% 84%;
 
-  --primary: red; /*replace with H S L */
+  --primary: 220 22% 16%;
 
-  --primary-foreground: red; /*replace with H S L */
+  --primary-foreground: 39 40% 97%;
 
-  --secondary: red; /*replace with H S L */
+  --secondary: 42 53% 57%;
 
-  --secondary-foreground: red; /*replace with H S L */
+  --secondary-foreground: 220 22% 16%;
 
-  --muted: red; /*replace with H S L */
+  --muted: 38 22% 89%;
 
-  --muted-foreground: red; /*replace with H S L */
+  --muted-foreground: 220 10% 46%;
 
-  --accent: red; /*replace with H S L */
+  --accent: 38 38% 86%;
 
-  --accent-foreground: red; /*replace with H S L */
+  --accent-foreground: 220 21% 18%;
 
-  --destructive: red; /*replace with H S L */
+  --destructive: 4 66% 52%;
 
-  --destructive-foreground: red; /*replace with H S L */
+  --destructive-foreground: 39 40% 97%;
 
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
+  --input: 38 18% 76%;
+  --ring: 42 53% 57%;
+  --chart-1: 42 53% 57%;
+  --chart-2: 220 22% 16%;
+  --chart-3: 154 28% 42%;
+  --chart-4: 4 66% 52%;
+  --chart-5: 38 45% 72%;
 
-  --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem; /* 8px */
+  --app-font-sans: 'Manrope', sans-serif;
+  --app-font-serif: 'Playfair Display', serif;
+  --app-font-mono: 'DM Mono', monospace;
+  --radius: 0.35rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-sm:
@@ -227,68 +228,68 @@
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: red; /*replace with H S L */
+  --background: 220 22% 13%;
 
-  --foreground: red; /*replace with H S L */
+  --foreground: 39 33% 94%;
 
-  --border: red; /*replace with H S L */
+  --border: 220 16% 25%;
 
-  --card: red; /*replace with H S L */
+  --card: 220 20% 17%;
 
-  --card-foreground: red; /*replace with H S L */
+  --card-foreground: 39 33% 94%;
 
-  --card-border: red; /*replace with H S L */
+  --card-border: 220 16% 28%;
 
-  --sidebar: red; /*replace with H S L */
+  --sidebar: 220 24% 10%;
 
-  --sidebar-foreground: red; /*replace with H S L */
+  --sidebar-foreground: 39 33% 94%;
 
-  --sidebar-border: red; /*replace with H S L */
+  --sidebar-border: 220 16% 20%;
 
-  --sidebar-primary: red; /*replace with H S L */
+  --sidebar-primary: 42 53% 57%;
 
-  --sidebar-primary-foreground: red; /*replace with H S L */
+  --sidebar-primary-foreground: 220 22% 16%;
 
-  --sidebar-accent: red; /*replace with H S L */
+  --sidebar-accent: 220 18% 19%;
 
-  --sidebar-accent-foreground: red; /*replace with H S L */
+  --sidebar-accent-foreground: 39 33% 94%;
 
-  --sidebar-ring: red; /*replace with H S L */
+  --sidebar-ring: 42 53% 57%;
 
-  --popover: red; /*replace with H S L */
+  --popover: 220 20% 17%;
 
-  --popover-foreground: red; /*replace with H S L */
+  --popover-foreground: 39 33% 94%;
 
-  --popover-border: red; /*replace with H S L */
+  --popover-border: 220 16% 28%;
 
-  --primary: red; /*replace with H S L */
+  --primary: 42 53% 57%;
 
-  --primary-foreground: red; /*replace with H S L */
+  --primary-foreground: 220 22% 16%;
 
-  --secondary: red; /*replace with H S L */
+  --secondary: 220 16% 26%;
 
-  --secondary-foreground: red; /*replace with H S L */
+  --secondary-foreground: 39 33% 94%;
 
-  --muted: red; /*replace with H S L */
+  --muted: 220 16% 24%;
 
-  --muted-foreground: red; /*replace with H S L */
+  --muted-foreground: 220 10% 70%;
 
-  --accent: red; /*replace with H S L */
+  --accent: 220 16% 26%;
 
-  --accent-foreground: red; /*replace with H S L */
+  --accent-foreground: 39 33% 94%;
 
-  --destructive: red; /*replace with H S L */
+  --destructive: 4 66% 52%;
 
-  --destructive-foreground: red; /*replace with H S L */
+  --destructive-foreground: 39 33% 94%;
 
   /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
+  --input: 220 16% 35%;
+  --ring: 42 53% 57%;
+  --chart-1: 42 53% 57%;
+  --chart-2: 154 28% 52%;
+  --chart-3: 4 66% 58%;
+  --chart-4: 38 45% 72%;
+  --chart-5: 220 10% 70%;
 
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);
@@ -318,6 +319,86 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .marque-grid {
+    background-image: linear-gradient(to right, hsl(var(--border) / 0.32) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.32) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .marque-fade-in {
+    animation: marque-fade-in 420ms ease-out both;
+  }
+  .marque-slide-up {
+    animation: marque-slide-up 500ms cubic-bezier(.2,.8,.2,1) both;
+  }
+  .marque-delay-1 { animation-delay: 70ms; }
+  .marque-delay-2 { animation-delay: 140ms; }
+  .marque-delay-3 { animation-delay: 210ms; }
+  .marque-delay-4 { animation-delay: 280ms; }
+  .hairline { border-color: hsl(var(--border) / .72); }
+  .text-balance { text-wrap: balance; }
+  .eyebrow {
+    color: hsl(var(--muted-foreground));
+    font-family: var(--app-font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .18em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+  .field-label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: hsl(var(--muted-foreground));
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+  .field-input {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid hsl(var(--input));
+    border-radius: var(--radius);
+    background: hsl(var(--background));
+    padding: 9px 11px;
+    color: hsl(var(--foreground));
+    font-family: var(--app-font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .field-input:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--secondary) / .18);
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-family: var(--app-font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .status-green { background: hsl(148 35% 89%); color: hsl(154 35% 27%); }
+  .status-amber { background: hsl(42 66% 88%); color: hsl(31 59% 32%); }
+  .status-red { background: hsl(4 65% 91%); color: hsl(4 61% 38%); }
+}
+
+@keyframes marque-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes marque-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /**

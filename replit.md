@@ -1,6 +1,6 @@
-# [Project name]
+# Marque CRM
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Marque CRM helps a small luxury car concierge team manage client relationships, vehicle due dates, and thoughtful WhatsApp reminders.
 
 ## Run & Operate
 
@@ -22,23 +22,33 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/marque-crm` — React/Vite dashboard, client intake, client detail, vehicle editing, and reminder flows.
+- `artifacts/api-server/src/routes/marque.ts` — Express API routes, due-date logic, seed data, and Gemini calls.
+- `lib/db/src/schema` — Drizzle tables for clients, vehicles, and `reminders_log`.
+- `lib/api-spec/openapi.yaml` — source of truth for the typed API client and Zod schemas.
+- `artifacts/marque-crm/src/index.css` — visual theme and layout utilities.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Calendar-only dates use PostgreSQL `date` columns and are normalized at the API boundary to avoid timezone shifts.
+- A sent reminder is tracked per vehicle and suppresses active due items for that vehicle on the dashboard.
+- Gemini is called server-side with `GEMINI_API_KEY`; the browser never receives the secret.
+- AI responses are requested as JSON and validated with the generated API schemas before returning to the UI.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Dashboard shows all clients and vehicles, with soonest due dates first and green/amber/red status.
+- New-client flow accepts raw intake text, uses Gemini to prefill details, and requires review before saving.
+- Client detail supports editing client and vehicle records, adding vehicles, viewing reminder history, drafting WhatsApp copy, opening WhatsApp, and marking messages sent.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Use Gemini through `GEMINI_API_KEY` for AI intake and reminder drafting.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Do not expose `GEMINI_API_KEY` to frontend code; all AI calls belong in the API server.
+- The API seed check is guarded against concurrent first requests because dashboard and client queries load in parallel.
 
 ## Pointers
 

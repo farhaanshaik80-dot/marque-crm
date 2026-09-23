@@ -16,6 +16,7 @@ export const vehiclesTable = pgTable("vehicles", {
   nextServiceDueOdometer: integer("next_service_due_odometer").notNull().default(0),
   odometerUpdatedAt: timestamp("odometer_updated_at", { withTimezone: true }).notNull().defaultNow(),
   odometerLastAskedAt: timestamp("odometer_last_asked_at", { withTimezone: true }),
+  mulkiyaImagePath: text("mulkiya_image_path"),
 });
 
 export const insertVehicleSchema = createInsertSchema(vehiclesTable).omit({ id: true });

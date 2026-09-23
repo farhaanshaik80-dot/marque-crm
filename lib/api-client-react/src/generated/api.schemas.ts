@@ -35,6 +35,8 @@ export interface Vehicle {
   odometerUpdatedAt: string;
   /** @nullable */
   odometerLastAskedAt: string | null;
+  /** @nullable */
+  mulkiyaImagePath: string | null;
 }
 
 export type VehicleStatusOverallStatus = typeof VehicleStatusOverallStatus[keyof typeof VehicleStatusOverallStatus];
@@ -106,10 +108,20 @@ export interface MaintenanceItem {
   status: MaintenanceItemStatus;
 }
 
+export interface VehicleUpdateHistory {
+  id: number;
+  vehicleId: number;
+  fieldChanged: string;
+  oldValue: string;
+  newValue: string;
+  changedAt: string;
+}
+
 export type VehicleStatus = Vehicle & {
   overallStatus: VehicleStatusOverallStatus;
   dueItems: DueItem[];
   maintenanceItems: MaintenanceItem[];
+  updateHistory: VehicleUpdateHistory[];
 };
 
 export type ClientSummary = Client & {
@@ -229,4 +241,207 @@ export interface DraftReminderInput {
 export interface DraftReminderResult {
   message: string;
 }
+
+export type DocumentType = typeof DocumentType[keyof typeof DocumentType];
+
+
+export const DocumentType = {
+  service_bill: 'service_bill',
+  part_bill: 'part_bill',
+  warranty_card: 'warranty_card',
+  parking_receipt: 'parking_receipt',
+} as const;
+
+export type DocumentExtractionInputContentType = typeof DocumentExtractionInputContentType[keyof typeof DocumentExtractionInputContentType];
+
+
+export const DocumentExtractionInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+} as const;
+
+export interface DocumentExtractionInput {
+  objectPath: string;
+  contentType: DocumentExtractionInputContentType;
+}
+
+export interface DocumentExtraction {
+  documentType: DocumentType;
+  /** @nullable */
+  date: string | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  amountAed: number | null;
+  vendorName: string;
+  description: string;
+  /** @nullable */
+  warrantyExpiry: string | null;
+}
+
+export type ClientDocumentInputContentType = typeof ClientDocumentInputContentType[keyof typeof ClientDocumentInputContentType];
+
+
+export const ClientDocumentInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+} as const;
+
+export interface ClientDocumentInput {
+  documentType: DocumentType;
+  date: string;
+  /** @minimum 0 */
+  amountAed: number;
+  vendorName: string;
+  description: string;
+  /** @nullable */
+  warrantyExpiry: string | null;
+  objectPath: string;
+  originalFileName: string;
+  contentType: ClientDocumentInputContentType;
+  /** @nullable */
+  vehicleId?: number | null;
+}
+
+export type ClientDocumentContentType = typeof ClientDocumentContentType[keyof typeof ClientDocumentContentType];
+
+
+export const ClientDocumentContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+} as const;
+
+export interface ClientDocument {
+  id: number;
+  clientId: number;
+  /** @nullable */
+  vehicleId: number | null;
+  documentType: DocumentType;
+  date: string;
+  /** @minimum 0 */
+  amountAed: number;
+  vendorName: string;
+  description: string;
+  /** @nullable */
+  warrantyExpiry: string | null;
+  objectPath: string;
+  originalFileName: string;
+  contentType: ClientDocumentContentType;
+  createdAt: string;
+}
+
+export type MulkiyaInputContentType = typeof MulkiyaInputContentType[keyof typeof MulkiyaInputContentType];
+
+
+export const MulkiyaInputContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+} as const;
+
+export interface MulkiyaInput {
+  objectPath: string;
+  originalFileName: string;
+  contentType: MulkiyaInputContentType;
+}
+
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email: string | null;
+  /** @nullable */
+  firstName: string | null;
+  /** @nullable */
+  lastName: string | null;
+  /** @nullable */
+  profileImageUrl: string | null;
+}
+
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
+}
+
+export interface MobileTokenExchangeRequest {
+  /** @minLength 1 */
+  code: string;
+  /** @minLength 1 */
+  code_verifier: string;
+  /** @minLength 1 */
+  redirect_uri: string;
+  /** @minLength 1 */
+  state: string;
+  /** @minLength 1 */
+  nonce?: string;
+}
+
+export interface MobileTokenExchangeSuccess {
+  token: string;
+}
+
+export const LogoutSuccessValue = {
+  success: true,
+} as const;
+export type LogoutSuccess = typeof LogoutSuccessValue;
+
+export interface ErrorEnvelope {
+  error: string;
+}
+
+export interface UploadUrlRequest {
+  /**
+     * Original file name.
+     * @minLength 1
+     */
+  name: string;
+  /**
+     * File size in bytes.
+     * @minimum 1
+     */
+  size: number;
+  /**
+     * MIME type of the file (e.g. `image/jpeg`).
+     * @minLength 1
+     */
+  contentType: string;
+}
+
+export interface UploadUrlResponse {
+  /** Presigned GCS URL for PUT upload. */
+  uploadURL: string;
+  /** Normalized object path. */
+  objectPath: string;
+  metadata?: UploadUrlRequest;
+}
+
+export interface DiscardUploadRequest {
+  /** @pattern ^/objects/uploads/[A-Za-z0-9-]+$ */
+  objectPath: string;
+}
+
+export const DiscardUploadResultValue = {
+  success: true,
+} as const;
+export type DiscardUploadResult = typeof DiscardUploadResultValue;
+
+/**
+ * Opaque session token — `Bearer <sid>`.
+ */
+export type AuthorizationSessionHeaderParameter = string;
+
+export type BeginBrowserLoginParams = {
+/**
+ * Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+ */
+returnTo?: string;
+};
+
+export type HandleBrowserLoginCallbackParams = {
+code?: string;
+state?: string;
+iss?: string;
+};
+
+export type LogoutBrowserSessionParams = {
+returnTo?: string;
+};
 

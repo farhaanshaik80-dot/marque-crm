@@ -22,4 +22,6 @@ export interface Vehicle {
   odometerUpdatedAt: Date;
   /** @nullable */
   odometerLastAskedAt: Date | null;
+  /** @nullable */
+  mulkiyaImagePath: string | null;
 }

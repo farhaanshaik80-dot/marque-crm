@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq } from "drizzle-orm";
+import { clientDocumentsTable, vehicleUpdateHistoryTable } from "@workspace/db";
 import {
   clientsTable,
   db,
@@ -33,10 +34,16 @@ import {
   UpdateMaintenanceItemParams, UpdateMaintenanceItemBody, UpdateMaintenanceItemResponse,
   DeleteMaintenanceItemParams, DeleteMaintenanceItemResponse,
   UpdateVehicleOdometerParams, UpdateVehicleOdometerBody, UpdateVehicleOdometerResponse,
+  ExtractDocumentBody, ExtractDocumentResponse, ListClientDocumentsParams, ListClientDocumentsResponse,
+  CreateClientDocumentParams, CreateClientDocumentBody, CreateClientDocumentResponse,
+  UpdateVehicleMulkiyaParams, UpdateVehicleMulkiyaBody, UpdateVehicleMulkiyaResponse,
 } from "@workspace/api-zod";
+import { ObjectStorageService } from "../lib/objectStorage";
+import { ObjectPermission } from "../lib/objectAcl";
 
 const router: IRouter = Router();
 const DAY_MS = 24 * 60 * 60 * 1000;
+const objectStorageService = new ObjectStorageService();
 
 type DueKind = "registration" | "insurance" | "service" | "odometer-checkin";
 type Status = "green" | "amber" | "red";
@@ -181,6 +188,7 @@ function buildVehicleStatus(
   clientName: string,
   maintenance: Array<typeof maintenanceItemsTable.$inferSelect>,
   sentKeys: Set<string>,
+  history: Array<typeof vehicleUpdateHistoryTable.$inferSelect> = [],
 ) {
   const rawDueItems: Array<{ kind: DueKind; label: string; dueDate: string | null; dueOdometer?: number | null; key: string }> = [
     { kind: "registration", label: "Registration", dueDate: vehicle.registrationExpiry, dueOdometer: null, key: `registration-${vehicle.registrationExpiry}` },
@@ -228,19 +236,21 @@ function buildVehicleStatus(
     nextServiceDueOdometer: vehicle.nextServiceDueOdometer,
     odometerUpdatedAt: vehicle.odometerUpdatedAt,
     odometerLastAskedAt: vehicle.odometerLastAskedAt,
+    mulkiyaImagePath: vehicle.mulkiyaImagePath,
     overallStatus,
     dueItems,
     maintenanceItems,
+    updateHistory: history,
   };
 }
 
 async function getClientSummaries() {
   const clients = await db.select().from(clientsTable).orderBy(clientsTable.name);
   const vehicles = await db.select().from(vehiclesTable);
-  const [sentRows, maintenance] = await Promise.all([db
+  const [sentRows, maintenance, history] = await Promise.all([db
     .select({ vehicleId: remindersLogTable.vehicleId, dueKey: remindersLogTable.dueKey })
     .from(remindersLogTable)
-    .where(eq(remindersLogTable.sent, true)), db.select().from(maintenanceItemsTable)]);
+    .where(eq(remindersLogTable.sent, true)), db.select().from(maintenanceItemsTable), db.select().from(vehicleUpdateHistoryTable).orderBy(desc(vehicleUpdateHistoryTable.changedAt))]);
   const sentKeys = new Set(sentRows.map((row) => `${row.vehicleId}:${row.dueKey}`));
 
   return clients.map((client) => ({
@@ -253,7 +263,7 @@ async function getClientSummaries() {
     notes: client.notes,
     vehicles: vehicles
       .filter((vehicle) => vehicle.clientId === client.id)
-       .map((vehicle) => buildVehicleStatus(vehicle, client.name, maintenance.filter((item) => item.vehicleId === vehicle.id), sentKeys))
+       .map((vehicle) => buildVehicleStatus(vehicle, client.name, maintenance.filter((item) => item.vehicleId === vehicle.id), sentKeys, history.filter((item) => item.vehicleId === vehicle.id).slice(0, 20)))
       .sort((a, b) => {
          const aSoonest = Math.min(...a.dueItems.map((item) => item.daysUntilDue ?? 9999), 9999);
          const bSoonest = Math.min(...b.dueItems.map((item) => item.daysUntilDue ?? 9999), 9999);
@@ -462,9 +472,15 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Vehicle not found" });
     return;
   }
-  const [vehicle] = await db
-    .update(vehiclesTable)
-    .set({
+  const [vehicle] = await db.transaction(async (tx) => {
+    const candidates: Array<[string, string | number, string | number]> = [
+      ["current_odometer_km", existing.currentOdometer, body.data.currentOdometer],
+      ["registration_expiry", existing.registrationExpiry, formatDate(body.data.registrationExpiry)],
+      ["insurance_expiry", existing.insuranceExpiry, formatDate(body.data.insuranceExpiry)],
+      ["next_service_due", existing.nextServiceDue, formatDate(body.data.nextServiceDue)],
+    ];
+    const changed = candidates.filter(([, oldValue, newValue]) => oldValue !== newValue);
+    const [updated] = await tx.update(vehiclesTable).set({
       model: body.data.model,
       plate: body.data.plate,
       registrationExpiry: formatDate(body.data.registrationExpiry),
@@ -474,9 +490,10 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
       currentOdometer: body.data.currentOdometer,
       nextServiceDueOdometer: body.data.nextServiceDueOdometer,
       ...(body.data.currentOdometer !== existing.currentOdometer ? { odometerUpdatedAt: new Date() } : {}),
-    })
-    .where(eq(vehiclesTable.id, params.data.id))
-    .returning();
+    }).where(eq(vehiclesTable.id, params.data.id)).returning();
+    if (changed.length) await tx.insert(vehicleUpdateHistoryTable).values(changed.map(([fieldChanged, oldValue, newValue]) => ({ vehicleId: existing.id, fieldChanged, oldValue: String(oldValue), newValue: String(newValue) })));
+    return [updated];
+  });
   if (!vehicle) {
     res.status(404).json({ error: "Vehicle not found" });
     return;
@@ -495,11 +512,15 @@ router.patch("/vehicles/:id/odometer", async (req, res): Promise<void> => {
   const body = UpdateVehicleOdometerBody.safeParse(req.body);
   if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
-  const [vehicle] = await db
-    .update(vehiclesTable)
-    .set({ currentOdometer: body.data.currentOdometer, odometerUpdatedAt: new Date() })
-    .where(eq(vehiclesTable.id, params.data.id))
-    .returning();
+  const [vehicle] = await db.transaction(async (tx) => {
+    const [current] = await tx.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
+    if (!current) return [];
+    const [updated] = await tx.update(vehiclesTable).set({ currentOdometer: body.data.currentOdometer, odometerUpdatedAt: new Date() }).where(eq(vehiclesTable.id, params.data.id)).returning();
+    await tx.insert(vehicleUpdateHistoryTable).values({ vehicleId: current.id, fieldChanged: "current_odometer_km", oldValue: String(current.currentOdometer), newValue: String(body.data.currentOdometer) });
+    const items = await tx.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, current.id));
+    for (const item of items) await tx.update(maintenanceItemsTable).set({ nextDueKm: item.lastChangedKm + item.changeIntervalKm }).where(eq(maintenanceItemsTable.id, item.id));
+    return [updated];
+  });
   if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
   const [[client], items, sentRows] = await Promise.all([
     db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId)),
@@ -516,7 +537,7 @@ router.post("/vehicles/:id/maintenance-items", async (req, res): Promise<void> =
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
   const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
   if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
-  const [item] = await db.insert(maintenanceItemsTable).values({ vehicleId: vehicle.id, ...body.data, costAed: String(body.data.costAed) }).returning();
+  const [item] = await db.insert(maintenanceItemsTable).values({ vehicleId: vehicle.id, ...body.data, nextDueKm: body.data.lastChangedKm + body.data.changeIntervalKm, costAed: String(body.data.costAed) }).returning();
   const remaining = item.nextDueKm - vehicle.currentOdometer;
   res.status(201).json(CreateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: statusForKm(remaining) }));
 });
@@ -528,7 +549,7 @@ router.patch("/maintenance-items/:id", async (req, res): Promise<void> => {
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
   const [existing] = await db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Maintenance item not found" }); return; }
-  const [item] = await db.update(maintenanceItemsTable).set({ ...body.data, costAed: String(body.data.costAed) }).where(eq(maintenanceItemsTable.id, params.data.id)).returning();
+  const [item] = await db.update(maintenanceItemsTable).set({ ...body.data, nextDueKm: body.data.lastChangedKm + body.data.changeIntervalKm, costAed: String(body.data.costAed) }).where(eq(maintenanceItemsTable.id, params.data.id)).returning();
   const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, item.vehicleId));
   const remaining = item.nextDueKm - (vehicle?.currentOdometer ?? 0);
   res.json(UpdateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: statusForKm(remaining) }));
@@ -541,6 +562,76 @@ router.delete("/maintenance-items/:id", async (req, res): Promise<void> => {
   if (!item) { res.status(404).json({ error: "Maintenance item not found" }); return; }
   DeleteMaintenanceItemResponse.parse(undefined);
   res.sendStatus(204);
+});
+
+router.post("/documents/extract", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const parsed = ExtractDocumentBody.safeParse(req.body);
+  if (!parsed.success || !parsed.data.objectPath.startsWith("/objects/")) { res.status(400).json({ error: "A valid image object path is required" }); return; }
+  try {
+    await objectStorageService.trySetObjectEntityAclPolicy(parsed.data.objectPath, { owner: req.user.id, visibility: "private" });
+    const file = await objectStorageService.getObjectEntityFile(parsed.data.objectPath);
+    const [bytes] = await file.download();
+    const prompt = `Inspect this document image and return ONLY JSON with exactly these fields: documentType (one of service_bill, part_bill, warranty_card, parking_receipt), date (YYYY-MM-DD or null), amountAed (number or null), vendorName (string), description (string), warrantyExpiry (YYYY-MM-DD or null, only warranty cards). Do not infer missing values.`;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: parsed.data.contentType, data: bytes.toString("base64") } }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } }) });
+    if (!response.ok) throw new Error(`Gemini status ${response.status}`);
+    const payload = await response.json() as any;
+    const text = payload.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("").replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
+    if (!text) throw new Error("Gemini returned no content");
+    res.json(ExtractDocumentResponse.parse(JSON.parse(text)));
+  } catch (error) {
+    req.log.error({ err: error }, "Document extraction failed");
+    res.status(502).json({ error: "Gemini could not extract this document." });
+  }
+});
+
+router.get("/clients/:id/documents", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const params = ListClientDocumentsParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, params.data.id));
+  if (!client) { res.status(404).json({ error: "Client not found" }); return; }
+  const rows = await db.select().from(clientDocumentsTable).where(eq(clientDocumentsTable.clientId, client.id)).orderBy(desc(clientDocumentsTable.createdAt));
+  res.json(ListClientDocumentsResponse.parse(rows.map((row) => ({ ...row, date: row.documentDate, amountAed: Number(row.amountAed) }))));
+});
+
+router.post("/clients/:id/documents", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const params = CreateClientDocumentParams.safeParse(req.params);
+  const body = CreateClientDocumentBody.safeParse(req.body);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  if (!body.data.objectPath.startsWith("/objects/")) { res.status(400).json({ error: "A valid object path is required" }); return; }
+  const [client] = await db.select().from(clientsTable).where(eq(clientsTable.id, params.data.id));
+  if (!client) { res.status(404).json({ error: "Client not found" }); return; }
+  if (body.data.vehicleId != null) {
+    const [vehicle] = await db.select().from(vehiclesTable).where(and(eq(vehiclesTable.id, body.data.vehicleId), eq(vehiclesTable.clientId, client.id)));
+    if (!vehicle) { res.status(400).json({ error: "Vehicle does not belong to client" }); return; }
+  }
+  try {
+    const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(body.data.objectPath, { owner: req.user.id, visibility: "private" });
+    const [row] = await db.insert(clientDocumentsTable).values({ clientId: client.id, vehicleId: body.data.vehicleId ?? null, documentType: body.data.documentType, documentDate: formatDate(body.data.date), amountAed: String(body.data.amountAed), vendorName: body.data.vendorName, description: body.data.description, warrantyExpiry: body.data.warrantyExpiry ? formatDate(body.data.warrantyExpiry) : null, objectPath, originalFileName: body.data.originalFileName, contentType: body.data.contentType }).returning();
+    res.status(201).json(CreateClientDocumentResponse.parse({ ...row, date: row.documentDate, amountAed: Number(row.amountAed) }));
+  } catch (error) { req.log.error({ err: error }, "Document save failed"); res.status(400).json({ error: "Object could not be secured" }); }
+});
+
+router.patch("/vehicles/:id/mulkiya", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const params = UpdateVehicleMulkiyaParams.safeParse(req.params);
+  const body = UpdateVehicleMulkiyaBody.safeParse(req.body);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  if (!body.data.objectPath.startsWith("/objects/")) { res.status(400).json({ error: "A valid object path is required" }); return; }
+  const [existing] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Vehicle not found" }); return; }
+  try {
+    const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(body.data.objectPath, { owner: req.user.id, visibility: "private" });
+    const [vehicle] = await db.update(vehiclesTable).set({ mulkiyaImagePath: objectPath }).where(eq(vehiclesTable.id, existing.id)).returning();
+    const [[client], items, sentRows, history] = await Promise.all([db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId)), db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, vehicle.id)), db.select({ dueKey: remindersLogTable.dueKey }).from(remindersLogTable).where(and(eq(remindersLogTable.vehicleId, vehicle.id), eq(remindersLogTable.sent, true))), db.select().from(vehicleUpdateHistoryTable).where(eq(vehicleUpdateHistoryTable.vehicleId, vehicle.id)).orderBy(desc(vehicleUpdateHistoryTable.changedAt))]);
+    res.json(UpdateVehicleMulkiyaResponse.parse(buildVehicleStatus(vehicle, client?.name ?? "", items, new Set(sentRows.map((r) => `${vehicle.id}:${r.dueKey}`)), history.slice(0, 20))));
+  } catch (error) { req.log.error({ err: error }, "Mulkiya save failed"); res.status(400).json({ error: "Object could not be secured" }); }
 });
 
 router.get("/clients/:id/reminders", async (req, res): Promise<void> => {

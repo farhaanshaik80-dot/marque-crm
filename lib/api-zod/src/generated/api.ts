@@ -56,7 +56,8 @@ export const GetDashboardResponse = zod.object({
   "currentOdometer": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
@@ -80,6 +81,14 @@ export const GetDashboardResponse = zod.object({
   "nextDueKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
   "kmRemaining": zod.number().int(),
   "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
 }))
 })))
 }))),
@@ -128,7 +137,8 @@ export const ListClientsResponseItem = zod.object({
   "currentOdometer": zod.number().int().min(listClientsResponseTwoVehiclesItemOneCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(listClientsResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
@@ -152,6 +162,14 @@ export const ListClientsResponseItem = zod.object({
   "nextDueKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
   "kmRemaining": zod.number().int(),
   "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
 }))
 })))
 }))
@@ -221,7 +239,8 @@ export const CreateClientResponse = zod.object({
   "currentOdometer": zod.number().int().min(createClientResponseTwoVehiclesItemOneCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(createClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
@@ -245,6 +264,14 @@ export const CreateClientResponse = zod.object({
   "nextDueKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
   "kmRemaining": zod.number().int(),
   "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
 }))
 }))),
   "reminders": zod.array(zod.object({
@@ -306,7 +333,8 @@ export const GetClientResponse = zod.object({
   "currentOdometer": zod.number().int().min(getClientResponseTwoVehiclesItemOneCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(getClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
@@ -330,6 +358,14 @@ export const GetClientResponse = zod.object({
   "nextDueKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
   "kmRemaining": zod.number().int(),
   "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
 }))
 }))),
   "reminders": zod.array(zod.object({
@@ -400,7 +436,8 @@ export const UpdateClientResponse = zod.object({
   "currentOdometer": zod.number().int().min(updateClientResponseTwoVehiclesItemOneCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(updateClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
@@ -424,6 +461,14 @@ export const UpdateClientResponse = zod.object({
   "nextDueKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
   "kmRemaining": zod.number().int(),
   "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
 }))
 }))),
   "reminders": zod.array(zod.object({
@@ -485,7 +530,8 @@ export const CreateVehicleResponse = zod.object({
   "currentOdometer": zod.number().int().min(createVehicleResponseCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(createVehicleResponseNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 })
 
 
@@ -534,7 +580,8 @@ export const UpdateVehicleResponse = zod.object({
   "currentOdometer": zod.number().int().min(updateVehicleResponseCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(updateVehicleResponseNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 })
 
 
@@ -634,7 +681,8 @@ export const UpdateVehicleOdometerResponse = zod.object({
   "currentOdometer": zod.number().int().min(updateVehicleOdometerResponseOneCurrentOdometerMin),
   "nextServiceDueOdometer": zod.number().int().min(updateVehicleOdometerResponseOneNextServiceDueOdometerMin),
   "odometerUpdatedAt": zod.coerce.date(),
-  "odometerLastAskedAt": zod.coerce.date().nullable()
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
@@ -658,6 +706,14 @@ export const UpdateVehicleOdometerResponse = zod.object({
   "nextDueKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemNextDueKmMin),
   "kmRemaining": zod.number().int(),
   "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
 }))
 }))
 
@@ -795,5 +851,346 @@ export const DraftReminderBody = zod.object({
 export const DraftReminderResponse = zod.object({
   "message": zod.string()
 })
+
+
+/**
+ * @summary Extract structured data from a document
+ */
+export const ExtractDocumentBody = zod.object({
+  "objectPath": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png'])
+})
+
+export const extractDocumentResponseAmountAedMin = 0;
+
+
+
+export const ExtractDocumentResponse = zod.object({
+  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "date": zod.coerce.date().nullable(),
+  "amountAed": zod.number().min(extractDocumentResponseAmountAedMin).nullable(),
+  "vendorName": zod.string(),
+  "description": zod.string(),
+  "warrantyExpiry": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary List documents for a client
+ */
+
+
+
+export const ListClientDocumentsParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const listClientDocumentsResponseAmountAedMin = 0;
+
+
+
+export const ListClientDocumentsResponseItem = zod.object({
+  "id": zod.number().int(),
+  "clientId": zod.number().int(),
+  "vehicleId": zod.number().int().nullable(),
+  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "date": zod.coerce.date(),
+  "amountAed": zod.number().min(listClientDocumentsResponseAmountAedMin),
+  "vendorName": zod.string(),
+  "description": zod.string(),
+  "warrantyExpiry": zod.coerce.date().nullable(),
+  "objectPath": zod.string(),
+  "originalFileName": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png']),
+  "createdAt": zod.coerce.date()
+})
+export const ListClientDocumentsResponse = zod.array(ListClientDocumentsResponseItem)
+
+
+/**
+ * @summary Create a client document
+ */
+
+
+
+export const CreateClientDocumentParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const createClientDocumentBodyAmountAedMin = 0;
+
+
+
+export const CreateClientDocumentBody = zod.object({
+  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "date": zod.coerce.date(),
+  "amountAed": zod.number().min(createClientDocumentBodyAmountAedMin),
+  "vendorName": zod.string(),
+  "description": zod.string(),
+  "warrantyExpiry": zod.coerce.date().nullable(),
+  "objectPath": zod.string(),
+  "originalFileName": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png']),
+  "vehicleId": zod.number().int().nullish()
+})
+
+export const createClientDocumentResponseAmountAedMin = 0;
+
+
+
+export const CreateClientDocumentResponse = zod.object({
+  "id": zod.number().int(),
+  "clientId": zod.number().int(),
+  "vehicleId": zod.number().int().nullable(),
+  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "date": zod.coerce.date(),
+  "amountAed": zod.number().min(createClientDocumentResponseAmountAedMin),
+  "vendorName": zod.string(),
+  "description": zod.string(),
+  "warrantyExpiry": zod.coerce.date().nullable(),
+  "objectPath": zod.string(),
+  "originalFileName": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a vehicle registration card image
+ */
+
+
+
+export const UpdateVehicleMulkiyaParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const UpdateVehicleMulkiyaBody = zod.object({
+  "objectPath": zod.string(),
+  "originalFileName": zod.string(),
+  "contentType": zod.enum(['image/jpeg', 'image/png'])
+})
+
+export const updateVehicleMulkiyaResponseOneCurrentOdometerMin = 0;
+
+export const updateVehicleMulkiyaResponseOneNextServiceDueOdometerMin = 0;
+
+export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
+
+export const UpdateVehicleMulkiyaResponse = zod.object({
+  "id": zod.number().int(),
+  "clientId": zod.number().int(),
+  "model": zod.string(),
+  "plate": zod.string(),
+  "registrationExpiry": zod.coerce.date(),
+  "insuranceExpiry": zod.coerce.date(),
+  "lastServiceDate": zod.coerce.date(),
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(updateVehicleMulkiyaResponseOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(updateVehicleMulkiyaResponseOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable(),
+  "mulkiyaImagePath": zod.string().nullable()
+}).and(zod.object({
+  "overallStatus": zod.enum(['green', 'amber', 'red']),
+  "dueItems": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
+  "label": zod.string(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
+  "status": zod.enum(['green', 'amber', 'red']),
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
+})),
+  "updateHistory": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "fieldChanged": zod.string(),
+  "oldValue": zod.string(),
+  "newValue": zod.string(),
+  "changedAt": zod.coerce.date()
+}))
+}))
+
+
+/**
+ * @summary Get the currently authenticated user
+ */
+export const GetCurrentAuthUserHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — `Bearer <sid>`.')
+})
+
+export const GetCurrentAuthUserResponse = zod.object({
+  "user": zod.union([zod.object({
+  "id": zod.string(),
+  "email": zod.string().email().nullable(),
+  "firstName": zod.string().nullable(),
+  "lastName": zod.string().nullable(),
+  "profileImageUrl": zod.string().nullable()
+}),zod.null()])
+})
+
+
+/**
+ * @summary Start the browser OIDC login flow
+ */
+export const BeginBrowserLoginQueryParams = zod.object({
+  "returnTo": zod.coerce.string().optional().describe('Relative path to redirect to after login (must start with `/`). Defaults to `/`.')
+})
+
+export const BeginBrowserLoginResponse = zod.void()
+
+
+/**
+ * @summary Complete the browser OIDC login flow
+ */
+export const HandleBrowserLoginCallbackQueryParams = zod.object({
+  "code": zod.coerce.string().optional(),
+  "state": zod.coerce.string().optional(),
+  "iss": zod.coerce.string().url().optional()
+})
+
+export const HandleBrowserLoginCallbackResponse = zod.void()
+
+
+/**
+ * @summary Clear the session and begin OIDC logout
+ */
+export const logoutBrowserSessionQueryReturnToDefault = `/`;
+
+export const LogoutBrowserSessionQueryParams = zod.object({
+  "returnTo": zod.coerce.string().default(logoutBrowserSessionQueryReturnToDefault)
+})
+
+export const LogoutBrowserSessionHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — `Bearer <sid>`.')
+})
+
+export const LogoutBrowserSessionResponse = zod.void()
+
+
+/**
+ * @summary Exchange a mobile OIDC code for a session token
+ */
+
+
+
+
+
+
+
+export const ExchangeMobileAuthorizationCodeBody = zod.object({
+  "code": zod.string().min(1),
+  "code_verifier": zod.string().min(1),
+  "redirect_uri": zod.string().url().min(1),
+  "state": zod.string().min(1),
+  "nonce": zod.string().min(1).optional()
+})
+
+export const ExchangeMobileAuthorizationCodeResponse = zod.object({
+  "token": zod.string()
+})
+
+
+/**
+ * @summary Delete a mobile session token
+ */
+export const LogoutMobileSessionHeader = zod.object({
+  "Authorization": zod.string().optional().describe('Opaque session token — `Bearer <sid>`.')
+})
+
+export const LogoutMobileSessionResponse = zod.object({
+  "success": zod.literal(true)
+})
+
+
+/**
+ * Returns a presigned GCS URL for direct upload. The client sends JSON
+ * metadata here, then uploads the file directly to the returned URL.
+ * @summary Request a presigned URL for file upload
+ */
+
+
+
+
+
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string().min(1).describe('Original file name.'),
+  "size": zod.number().int().min(1).describe('File size in bytes.'),
+  "contentType": zod.string().min(1).describe('MIME type of the file (e.g. `image/jpeg`).')
+})
+
+
+
+
+
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url().describe('Presigned GCS URL for PUT upload.'),
+  "objectPath": zod.string().describe('Normalized object path.'),
+  "metadata": zod.object({
+  "name": zod.string().min(1).describe('Original file name.'),
+  "size": zod.number().int().min(1).describe('File size in bytes.'),
+  "contentType": zod.string().min(1).describe('MIME type of the file (e.g. `image/jpeg`).')
+}).optional()
+})
+
+
+/**
+ * @summary Delete an unconfirmed private upload
+ */
+export const discardUploadBodyObjectPathRegExp = new RegExp('^/objects/uploads/[A-Za-z0-9-]+$');
+
+
+export const DiscardUploadBody = zod.object({
+  "objectPath": zod.string().regex(discardUploadBodyObjectPathRegExp)
+})
+
+export const DiscardUploadResponse = zod.object({
+  "success": zod.literal(true)
+})
+
+
+/**
+ * Unconditionally public — no authentication or ACL checks.
+ * @summary Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+ */
+export const GetPublicObjectParams = zod.object({
+  "filePath": zod.coerce.string().describe('Relative file path within the public search paths.')
+})
+
+export const GetPublicObjectResponse = zod.unknown()
+
+
+/**
+ * Serves private object entities uploaded via presigned URLs. Authentication and ACL checks are required.
+ * @summary Serve a private object entity from PRIVATE_OBJECT_DIR
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string().describe('Object path within the private object dir.')
+})
+
+export const GetStorageObjectResponse = zod.unknown()
 
 

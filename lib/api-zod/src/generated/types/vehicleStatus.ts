@@ -9,9 +9,11 @@ import type { DueItem } from './dueItem';
 import type { MaintenanceItem } from './maintenanceItem';
 import type { Vehicle } from './vehicle';
 import type { VehicleStatusOverallStatus } from './vehicleStatusOverallStatus';
+import type { VehicleUpdateHistory } from './vehicleUpdateHistory';
 
 export type VehicleStatus = Vehicle & {
   overallStatus: VehicleStatusOverallStatus;
   dueItems: DueItem[];
   maintenanceItems: MaintenanceItem[];
+  updateHistory: VehicleUpdateHistory[];
 };

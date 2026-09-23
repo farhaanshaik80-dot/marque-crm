@@ -16,6 +16,10 @@ tags:
     description: Reminder drafting and sending
   - name: ai
     description: Gemini-powered reminder drafting
+  - name: Auth
+    description: Browser and mobile authentication endpoints.
+  - name: Storage
+    description: Object storage upload and serving endpoints.
 paths:
   /healthz:
     get:
@@ -269,6 +273,247 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DraftReminderResult"
+  /documents/extract:
+    post:
+      tags: [ai]
+      operationId: extractDocument
+      summary: Extract structured data from a document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentExtractionInput"
+      responses:
+        "200":
+          description: Extracted document data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentExtraction"
+  /clients/{id}/documents:
+    get:
+      tags: [clients]
+      operationId: listClientDocuments
+      summary: List documents for a client
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Client documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientDocument"
+    post:
+      tags: [clients]
+      operationId: createClientDocument
+      summary: Create a client document
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientDocumentInput"
+      responses:
+        "201":
+          description: Created client document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDocument"
+  /vehicles/{id}/mulkiya:
+    patch:
+      tags: [clients]
+      operationId: updateVehicleMulkiya
+      summary: Update a vehicle registration card image
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MulkiyaInput"
+      responses:
+        "200":
+          description: Updated vehicle status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleStatus"
+  /auth/user:
+    get:
+      tags: [Auth]
+      operationId: getCurrentAuthUser
+      summary: Get the currently authenticated user
+      parameters:
+        - $ref: "#/components/parameters/AuthorizationSessionHeader"
+        - $ref: "#/components/parameters/SessionCookie"
+      responses:
+        "200":
+          description: Auth status resolved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUserEnvelope"
+  /login:
+    get:
+      tags: [Auth]
+      operationId: beginBrowserLogin
+      summary: Start the browser OIDC login flow
+      parameters:
+        - name: returnTo
+          in: query
+          required: false
+          description: Relative path to redirect to after login (must start with `/`). Defaults to `/`.
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to the OIDC authorization endpoint.
+  /callback:
+    get:
+      tags: [Auth]
+      operationId: handleBrowserLoginCallback
+      summary: Complete the browser OIDC login flow
+      parameters:
+        - { name: code, in: query, required: false, schema: { type: string } }
+        - { name: state, in: query, required: false, schema: { type: string } }
+        - name: iss
+          in: query
+          required: false
+          schema: { type: string, format: uri }
+      responses:
+        "302":
+          description: Redirect to the `returnTo` path on success (defaults to `/`) or `/api/login` on failure.
+  /logout:
+    get:
+      tags: [Auth]
+      operationId: logoutBrowserSession
+      summary: Clear the session and begin OIDC logout
+      parameters:
+        - $ref: "#/components/parameters/AuthorizationSessionHeader"
+        - $ref: "#/components/parameters/SessionCookie"
+        - name: returnTo
+          in: query
+          required: false
+          schema: { type: string, default: / }
+      responses:
+        "302":
+          description: Redirect to the OIDC provider logout URL with a post-logout redirect back to the validated `returnTo` path.
+  /mobile-auth/token-exchange:
+    post:
+      tags: [Auth]
+      operationId: exchangeMobileAuthorizationCode
+      summary: Exchange a mobile OIDC code for a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MobileTokenExchangeRequest"
+      responses:
+        "200":
+          description: Session created successfully.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MobileTokenExchangeSuccess" }
+        "400": { description: Missing or invalid required fields., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "401": { description: Token did not contain usable claims., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "500": { description: Token exchange failed., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+  /mobile-auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logoutMobileSession
+      summary: Delete a mobile session token
+      parameters:
+        - $ref: "#/components/parameters/AuthorizationSessionHeader"
+      responses:
+        "200":
+          description: Logout processed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogoutSuccess" }
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      description: |
+        Returns a presigned GCS URL for direct upload. The client sends JSON
+        metadata here, then uploads the file directly to the returned URL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadUrlRequest" }
+      responses:
+        "200":
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadUrlResponse" }
+        "400": { description: Missing or invalid required fields., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "500": { description: Failed to generate upload URL., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+  /storage/uploads/discard:
+    post:
+      tags: [Storage]
+      operationId: discardUpload
+      summary: Delete an unconfirmed private upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiscardUploadRequest" }
+      responses:
+        "200":
+          description: Upload deleted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiscardUploadResult" }
+        "400": { description: Invalid object path., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "401": { description: Authentication required., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "403": { description: Object is not owned by the current user., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [Storage]
+      operationId: getPublicObject
+      summary: Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+      description: Unconditionally public — no authentication or ACL checks.
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema: { type: string }
+          description: Relative file path within the public search paths.
+      responses:
+        "200":
+          description: Object content streamed with correct Content-Type.
+          content: { "*/*": { schema: { type: string, format: binary } } }
+        "404": { description: File not found., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "500": { description: Failed to serve public object., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve a private object entity from PRIVATE_OBJECT_DIR
+      description: Serves private object entities uploaded via presigned URLs. Authentication and ACL checks are required.
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema: { type: string }
+          description: Object path within the private object dir.
+      responses:
+        "200":
+          description: Object content streamed with correct Content-Type.
+          content: { "*/*": { schema: { type: string, format: binary } } }
+        "404": { description: Object not found., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
+        "500": { description: Failed to serve object., content: { application/json: { schema: { $ref: "#/components/schemas/ErrorEnvelope" } } } }
 components:
   parameters:
     Id:
@@ -278,6 +523,18 @@ components:
       schema:
         type: integer
         minimum: 1
+    AuthorizationSessionHeader:
+      name: Authorization
+      in: header
+      required: false
+      description: Opaque session token — `Bearer <sid>`.
+      schema: { type: string }
+    SessionCookie:
+      name: sid
+      in: cookie
+      required: false
+      description: Browser session cookie.
+      schema: { type: string }
   schemas:
     HealthStatus:
       type: object
@@ -323,7 +580,7 @@ components:
                 $ref: "#/components/schemas/Reminder"
     Vehicle:
       type: object
-      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue, currentOdometer, nextServiceDueOdometer, odometerUpdatedAt, odometerLastAskedAt]
+      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue, currentOdometer, nextServiceDueOdometer, odometerUpdatedAt, odometerLastAskedAt, mulkiyaImagePath]
       properties:
         id: { type: integer }
         clientId: { type: integer }
@@ -337,11 +594,12 @@ components:
         nextServiceDueOdometer: { type: integer, minimum: 0 }
         odometerUpdatedAt: { type: string, format: date-time }
         odometerLastAskedAt: { type: ["string", "null"], format: date-time }
+        mulkiyaImagePath: { type: ["string", "null"] }
     VehicleStatus:
       allOf:
         - $ref: "#/components/schemas/Vehicle"
         - type: object
-          required: [overallStatus, dueItems, maintenanceItems]
+          required: [overallStatus, dueItems, maintenanceItems, updateHistory]
           properties:
             overallStatus:
               type: string
@@ -354,6 +612,10 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/MaintenanceItem"
+            updateHistory:
+              type: array
+              items:
+                $ref: "#/components/schemas/VehicleUpdateHistory"
     DueItem:
       type: object
       required: [key, kind, label, dueDate, daysUntilDue, dueOdometer, kmUntilDue, status, reminderSent]
@@ -486,4 +748,137 @@ components:
       required: [message]
       properties:
         message: { type: string }
+    DocumentType:
+      type: string
+      enum: [service_bill, part_bill, warranty_card, parking_receipt]
+    DocumentExtractionInput:
+      type: object
+      required: [objectPath, contentType]
+      properties:
+        objectPath: { type: string }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+    DocumentExtraction:
+      type: object
+      required: [documentType, date, amountAed, vendorName, description, warrantyExpiry]
+      properties:
+        documentType: { $ref: "#/components/schemas/DocumentType" }
+        date: { type: ["string", "null"], format: date }
+        amountAed: { type: ["number", "null"], minimum: 0 }
+        vendorName: { type: string }
+        description: { type: string }
+        warrantyExpiry: { type: ["string", "null"], format: date }
+    ClientDocumentInput:
+      type: object
+      required: [documentType, date, amountAed, vendorName, description, warrantyExpiry, objectPath, originalFileName, contentType]
+      properties:
+        documentType: { $ref: "#/components/schemas/DocumentType" }
+        date: { type: string, format: date }
+        amountAed: { type: number, minimum: 0 }
+        vendorName: { type: string }
+        description: { type: string }
+        warrantyExpiry: { type: ["string", "null"], format: date }
+        objectPath: { type: string }
+        originalFileName: { type: string }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+        vehicleId: { type: ["integer", "null"] }
+    ClientDocument:
+      type: object
+      required: [id, clientId, vehicleId, documentType, date, amountAed, vendorName, description, warrantyExpiry, objectPath, originalFileName, contentType, createdAt]
+      properties:
+        id: { type: integer }
+        clientId: { type: integer }
+        vehicleId: { type: ["integer", "null"] }
+        documentType: { $ref: "#/components/schemas/DocumentType" }
+        date: { type: string, format: date }
+        amountAed: { type: number, minimum: 0 }
+        vendorName: { type: string }
+        description: { type: string }
+        warrantyExpiry: { type: ["string", "null"], format: date }
+        objectPath: { type: string }
+        originalFileName: { type: string }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+        createdAt: { type: string, format: date-time }
+    MulkiyaInput:
+      type: object
+      required: [objectPath, originalFileName, contentType]
+      properties:
+        objectPath: { type: string }
+        originalFileName: { type: string }
+        contentType: { type: string, enum: [image/jpeg, image/png] }
+    VehicleUpdateHistory:
+      type: object
+      required: [id, vehicleId, fieldChanged, oldValue, newValue, changedAt]
+      properties:
+        id: { type: integer }
+        vehicleId: { type: integer }
+        fieldChanged: { type: string }
+        oldValue: { type: string }
+        newValue: { type: string }
+        changedAt: { type: string, format: date-time }
+    AuthUser:
+      type: object
+      required: [id, email, firstName, lastName, profileImageUrl]
+      properties:
+        id: { type: string }
+        email: { type: [string, "null"], format: email }
+        firstName: { type: [string, "null"] }
+        lastName: { type: [string, "null"] }
+        profileImageUrl: { type: [string, "null"] }
+    AuthUserEnvelope:
+      type: object
+      required: [user]
+      properties:
+        user:
+          oneOf:
+            - $ref: "#/components/schemas/AuthUser"
+            - type: "null"
+    MobileTokenExchangeRequest:
+      type: object
+      required: [code, code_verifier, redirect_uri, state]
+      properties:
+        code: { type: string, minLength: 1 }
+        code_verifier: { type: string, minLength: 1 }
+        redirect_uri: { type: string, minLength: 1, format: uri }
+        state: { type: string, minLength: 1 }
+        nonce: { type: string, minLength: 1 }
+    MobileTokenExchangeSuccess:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    LogoutSuccess:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1, description: Original file name. }
+        size: { type: integer, minimum: 1, description: File size in bytes. }
+        contentType: { type: string, minLength: 1, description: MIME type of the file (e.g. `image/jpeg`). }
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL: { type: string, format: uri, description: Presigned GCS URL for PUT upload. }
+        objectPath: { type: string, description: Normalized object path. }
+        metadata:
+          $ref: "#/components/schemas/UploadUrlRequest"
+    DiscardUploadRequest:
+      type: object
+      required: [objectPath]
+      properties:
+        objectPath: { type: string, pattern: "^/objects/uploads/[A-Za-z0-9-]+$" }
+    DiscardUploadResult:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
 

@@ -21,3 +21,6 @@ export * from "./clients";
 export * from "./vehicles";
 export * from "./reminders";
 export * from "./maintenance-items";
+export * from "./auth";
+export * from "./client-documents";
+export * from "./vehicle-update-history";

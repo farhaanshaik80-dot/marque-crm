@@ -20,3 +20,4 @@
 export * from "./clients";
 export * from "./vehicles";
 export * from "./reminders";
+export * from "./maintenance-items";

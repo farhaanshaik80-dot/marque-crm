@@ -20,6 +20,20 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get dashboard overview
  */
+export const getDashboardResponseClientsItemTwoVehiclesItemOneCurrentOdometerMin = 0;
+
+export const getDashboardResponseClientsItemTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
+
+export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
+
 export const GetDashboardResponse = zod.object({
   "clients": zod.array(zod.object({
   "id": zod.number().int(),
@@ -38,16 +52,34 @@ export const GetDashboardResponse = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
-  "kind": zod.enum(['registration', 'insurance', 'service']),
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
   "label": zod.string(),
-  "dueDate": zod.coerce.date(),
-  "daysUntilDue": zod.number().int(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red']),
-  "reminderSent": zod.boolean().optional()
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
 }))
 })))
 }))),
@@ -61,6 +93,20 @@ export const GetDashboardResponse = zod.object({
 /**
  * @summary List clients with vehicles
  */
+export const listClientsResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
+
+export const listClientsResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
+
+export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
+
 export const ListClientsResponseItem = zod.object({
   "id": zod.number().int(),
   "name": zod.string(),
@@ -78,16 +124,34 @@ export const ListClientsResponseItem = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(listClientsResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(listClientsResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
-  "kind": zod.enum(['registration', 'insurance', 'service']),
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
   "label": zod.string(),
-  "dueDate": zod.coerce.date(),
-  "daysUntilDue": zod.number().int(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red']),
-  "reminderSent": zod.boolean().optional()
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
 }))
 })))
 }))
@@ -97,6 +161,12 @@ export const ListClientsResponse = zod.array(ListClientsResponseItem)
 /**
  * @summary Create a client and optional first vehicle
  */
+export const createClientBodyVehiclesItemCurrentOdometerMin = 0;
+
+export const createClientBodyVehiclesItemNextServiceDueOdometerMin = 0;
+
+
+
 export const CreateClientBody = zod.object({
   "name": zod.string(),
   "phone": zod.string(),
@@ -109,10 +179,26 @@ export const CreateClientBody = zod.object({
   "plate": zod.string(),
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "lastServiceDate": zod.coerce.date().optional(),
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(createClientBodyVehiclesItemCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(createClientBodyVehiclesItemNextServiceDueOdometerMin)
 }))
 })
+
+export const createClientResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
+
+export const createClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
+
+export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
 
 export const CreateClientResponse = zod.object({
   "id": zod.number().int(),
@@ -131,22 +217,41 @@ export const CreateClientResponse = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(createClientResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(createClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
-  "kind": zod.enum(['registration', 'insurance', 'service']),
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
   "label": zod.string(),
-  "dueDate": zod.coerce.date(),
-  "daysUntilDue": zod.number().int(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red']),
-  "reminderSent": zod.boolean().optional()
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
 }))
 }))),
   "reminders": zod.array(zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "dueKey": zod.string(),
   "messageText": zod.string(),
   "draftedAt": zod.coerce.date(),
   "sent": zod.boolean(),
@@ -166,6 +271,20 @@ export const GetClientParams = zod.object({
   "id": zod.coerce.number().int().min(1)
 })
 
+export const getClientResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
+
+export const getClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
+
+export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
+
 export const GetClientResponse = zod.object({
   "id": zod.number().int(),
   "name": zod.string(),
@@ -183,22 +302,41 @@ export const GetClientResponse = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(getClientResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(getClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
-  "kind": zod.enum(['registration', 'insurance', 'service']),
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
   "label": zod.string(),
-  "dueDate": zod.coerce.date(),
-  "daysUntilDue": zod.number().int(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red']),
-  "reminderSent": zod.boolean().optional()
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
 }))
 }))),
   "reminders": zod.array(zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "dueKey": zod.string(),
   "messageText": zod.string(),
   "draftedAt": zod.coerce.date(),
   "sent": zod.boolean(),
@@ -227,6 +365,20 @@ export const UpdateClientBody = zod.object({
   "notes": zod.string()
 })
 
+export const updateClientResponseTwoVehiclesItemOneCurrentOdometerMin = 0;
+
+export const updateClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
+
+export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
+
 export const UpdateClientResponse = zod.object({
   "id": zod.number().int(),
   "name": zod.string(),
@@ -244,22 +396,41 @@ export const UpdateClientResponse = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(updateClientResponseTwoVehiclesItemOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(updateClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 }).and(zod.object({
   "overallStatus": zod.enum(['green', 'amber', 'red']),
   "dueItems": zod.array(zod.object({
-  "kind": zod.enum(['registration', 'insurance', 'service']),
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
   "label": zod.string(),
-  "dueDate": zod.coerce.date(),
-  "daysUntilDue": zod.number().int(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red']),
-  "reminderSent": zod.boolean().optional()
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
 }))
 }))),
   "reminders": zod.array(zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "dueKey": zod.string(),
   "messageText": zod.string(),
   "draftedAt": zod.coerce.date(),
   "sent": zod.boolean(),
@@ -279,14 +450,28 @@ export const CreateVehicleParams = zod.object({
   "id": zod.coerce.number().int().min(1)
 })
 
+export const createVehicleBodyCurrentOdometerMin = 0;
+
+export const createVehicleBodyNextServiceDueOdometerMin = 0;
+
+
+
 export const CreateVehicleBody = zod.object({
   "model": zod.string(),
   "plate": zod.string(),
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "lastServiceDate": zod.coerce.date().optional(),
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(createVehicleBodyCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(createVehicleBodyNextServiceDueOdometerMin)
 })
+
+export const createVehicleResponseCurrentOdometerMin = 0;
+
+export const createVehicleResponseNextServiceDueOdometerMin = 0;
+
+
 
 export const CreateVehicleResponse = zod.object({
   "id": zod.number().int(),
@@ -296,7 +481,11 @@ export const CreateVehicleResponse = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(createVehicleResponseCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(createVehicleResponseNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 })
 
 
@@ -310,14 +499,28 @@ export const UpdateVehicleParams = zod.object({
   "id": zod.coerce.number().int().min(1)
 })
 
+export const updateVehicleBodyOneCurrentOdometerMin = 0;
+
+export const updateVehicleBodyOneNextServiceDueOdometerMin = 0;
+
+
+
 export const UpdateVehicleBody = zod.object({
   "model": zod.string(),
   "plate": zod.string(),
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
-  "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "lastServiceDate": zod.coerce.date().optional(),
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(updateVehicleBodyOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(updateVehicleBodyOneNextServiceDueOdometerMin)
 })
+
+export const updateVehicleResponseCurrentOdometerMin = 0;
+
+export const updateVehicleResponseNextServiceDueOdometerMin = 0;
+
+
 
 export const UpdateVehicleResponse = zod.object({
   "id": zod.number().int(),
@@ -327,8 +530,201 @@ export const UpdateVehicleResponse = zod.object({
   "registrationExpiry": zod.coerce.date(),
   "insuranceExpiry": zod.coerce.date(),
   "lastServiceDate": zod.coerce.date(),
-  "nextServiceDue": zod.coerce.date()
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(updateVehicleResponseCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(updateVehicleResponseNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
 })
+
+
+/**
+ * @summary Add a maintenance item to a vehicle
+ */
+
+
+
+export const CreateMaintenanceItemParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+
+export const createMaintenanceItemBodyCostAedMin = 0;
+
+export const createMaintenanceItemBodyChangeIntervalKmMin = 0;
+
+export const createMaintenanceItemBodyLastChangedKmMin = 0;
+
+export const createMaintenanceItemBodyNextDueKmMin = 0;
+
+
+
+export const CreateMaintenanceItemBody = zod.object({
+  "name": zod.string().min(1),
+  "costAed": zod.number().min(createMaintenanceItemBodyCostAedMin),
+  "changeIntervalKm": zod.number().int().min(createMaintenanceItemBodyChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(createMaintenanceItemBodyLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(createMaintenanceItemBodyNextDueKmMin)
+})
+
+export const createMaintenanceItemResponseCostAedMin = 0;
+
+export const createMaintenanceItemResponseChangeIntervalKmMin = 0;
+
+export const createMaintenanceItemResponseLastChangedKmMin = 0;
+
+export const createMaintenanceItemResponseNextDueKmMin = 0;
+
+
+
+export const CreateMaintenanceItemResponse = zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(createMaintenanceItemResponseCostAedMin),
+  "changeIntervalKm": zod.number().int().min(createMaintenanceItemResponseChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(createMaintenanceItemResponseLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(createMaintenanceItemResponseNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
+})
+
+
+/**
+ * @summary Record a current odometer reading
+ */
+
+
+
+export const UpdateVehicleOdometerParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const updateVehicleOdometerBodyCurrentOdometerMin = 0;
+
+
+
+export const UpdateVehicleOdometerBody = zod.object({
+  "currentOdometer": zod.number().int().min(updateVehicleOdometerBodyCurrentOdometerMin)
+})
+
+export const updateVehicleOdometerResponseOneCurrentOdometerMin = 0;
+
+export const updateVehicleOdometerResponseOneNextServiceDueOdometerMin = 0;
+
+export const updateVehicleOdometerResponseTwoMaintenanceItemsItemCostAedMin = 0;
+
+export const updateVehicleOdometerResponseTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+
+export const updateVehicleOdometerResponseTwoMaintenanceItemsItemLastChangedKmMin = 0;
+
+export const updateVehicleOdometerResponseTwoMaintenanceItemsItemNextDueKmMin = 0;
+
+
+
+export const UpdateVehicleOdometerResponse = zod.object({
+  "id": zod.number().int(),
+  "clientId": zod.number().int(),
+  "model": zod.string(),
+  "plate": zod.string(),
+  "registrationExpiry": zod.coerce.date(),
+  "insuranceExpiry": zod.coerce.date(),
+  "lastServiceDate": zod.coerce.date(),
+  "nextServiceDue": zod.coerce.date(),
+  "currentOdometer": zod.number().int().min(updateVehicleOdometerResponseOneCurrentOdometerMin),
+  "nextServiceDueOdometer": zod.number().int().min(updateVehicleOdometerResponseOneNextServiceDueOdometerMin),
+  "odometerUpdatedAt": zod.coerce.date(),
+  "odometerLastAskedAt": zod.coerce.date().nullable()
+}).and(zod.object({
+  "overallStatus": zod.enum(['green', 'amber', 'red']),
+  "dueItems": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['registration', 'insurance', 'service', 'odometer-checkin']),
+  "label": zod.string(),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "dueOdometer": zod.number().int().nullable(),
+  "kmUntilDue": zod.number().int().nullable(),
+  "status": zod.enum(['green', 'amber', 'red']),
+  "reminderSent": zod.boolean()
+})),
+  "maintenanceItems": zod.array(zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemCostAedMin),
+  "changeIntervalKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
+}))
+}))
+
+
+/**
+ * @summary Update a maintenance item
+ */
+
+
+
+export const UpdateMaintenanceItemParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+
+export const updateMaintenanceItemBodyOneCostAedMin = 0;
+
+export const updateMaintenanceItemBodyOneChangeIntervalKmMin = 0;
+
+export const updateMaintenanceItemBodyOneLastChangedKmMin = 0;
+
+export const updateMaintenanceItemBodyOneNextDueKmMin = 0;
+
+
+
+export const UpdateMaintenanceItemBody = zod.object({
+  "name": zod.string().min(1),
+  "costAed": zod.number().min(updateMaintenanceItemBodyOneCostAedMin),
+  "changeIntervalKm": zod.number().int().min(updateMaintenanceItemBodyOneChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(updateMaintenanceItemBodyOneLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(updateMaintenanceItemBodyOneNextDueKmMin)
+})
+
+export const updateMaintenanceItemResponseCostAedMin = 0;
+
+export const updateMaintenanceItemResponseChangeIntervalKmMin = 0;
+
+export const updateMaintenanceItemResponseLastChangedKmMin = 0;
+
+export const updateMaintenanceItemResponseNextDueKmMin = 0;
+
+
+
+export const UpdateMaintenanceItemResponse = zod.object({
+  "id": zod.number().int(),
+  "vehicleId": zod.number().int(),
+  "name": zod.string(),
+  "costAed": zod.number().min(updateMaintenanceItemResponseCostAedMin),
+  "changeIntervalKm": zod.number().int().min(updateMaintenanceItemResponseChangeIntervalKmMin),
+  "lastChangedKm": zod.number().int().min(updateMaintenanceItemResponseLastChangedKmMin),
+  "nextDueKm": zod.number().int().min(updateMaintenanceItemResponseNextDueKmMin),
+  "kmRemaining": zod.number().int(),
+  "status": zod.enum(['green', 'amber', 'red'])
+})
+
+
+/**
+ * @summary Remove a maintenance item
+ */
+
+
+
+export const DeleteMaintenanceItemParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteMaintenanceItemResponse = zod.void()
 
 
 /**
@@ -345,6 +741,7 @@ export const ListRemindersResponseItem = zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "dueKey": zod.string(),
   "messageText": zod.string(),
   "draftedAt": zod.coerce.date(),
   "sent": zod.boolean(),
@@ -360,6 +757,7 @@ export const ListRemindersResponse = zod.array(ListRemindersResponseItem)
 export const MarkReminderSentBody = zod.object({
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "dueKey": zod.string(),
   "messageText": zod.string()
 })
 
@@ -367,6 +765,7 @@ export const MarkReminderSentResponse = zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "dueKey": zod.string(),
   "messageText": zod.string(),
   "draftedAt": zod.coerce.date(),
   "sent": zod.boolean(),
@@ -378,13 +777,19 @@ export const MarkReminderSentResponse = zod.object({
 /**
  * @summary Draft a friendly WhatsApp reminder
  */
+export const draftReminderBodyCurrentOdometerMin = 0;
+
+
+
 export const DraftReminderBody = zod.object({
   "clientName": zod.string(),
   "model": zod.string(),
   "plate": zod.string(),
   "dueLabel": zod.string(),
-  "dueDate": zod.coerce.date(),
-  "daysUntilDue": zod.number().int()
+  "reminderType": zod.enum(['due-item', 'odometer-checkin']),
+  "dueDate": zod.coerce.date().nullable(),
+  "daysUntilDue": zod.number().int().nullable(),
+  "currentOdometer": zod.number().int().min(draftReminderBodyCurrentOdometerMin)
 })
 
 export const DraftReminderResponse = zod.object({

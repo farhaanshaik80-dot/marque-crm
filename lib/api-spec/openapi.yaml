@@ -148,6 +148,75 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Vehicle"
+  /vehicles/{id}/maintenance-items:
+    post:
+      operationId: createMaintenanceItem
+      tags: [clients]
+      summary: Add a maintenance item to a vehicle
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceItemInput"
+      responses:
+        "201":
+          description: Created maintenance item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceItem"
+  /vehicles/{id}/odometer:
+    patch:
+      operationId: updateVehicleOdometer
+      tags: [clients]
+      summary: Record a current odometer reading
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OdometerInput"
+      responses:
+        "200":
+          description: Updated vehicle status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleStatus"
+  /maintenance-items/{id}:
+    patch:
+      operationId: updateMaintenanceItem
+      tags: [clients]
+      summary: Update a maintenance item
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceItemUpdate"
+      responses:
+        "200":
+          description: Updated maintenance item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceItem"
+    delete:
+      operationId: deleteMaintenanceItem
+      tags: [clients]
+      summary: Remove a maintenance item
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Maintenance item removed
   /clients/{id}/reminders:
     get:
       operationId: listReminders
@@ -254,7 +323,7 @@ components:
                 $ref: "#/components/schemas/Reminder"
     Vehicle:
       type: object
-      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue]
+      required: [id, clientId, model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue, currentOdometer, nextServiceDueOdometer, odometerUpdatedAt, odometerLastAskedAt]
       properties:
         id: { type: integer }
         clientId: { type: integer }
@@ -264,11 +333,15 @@ components:
         insuranceExpiry: { type: string, format: date }
         lastServiceDate: { type: string, format: date }
         nextServiceDue: { type: string, format: date }
+        currentOdometer: { type: integer, minimum: 0 }
+        nextServiceDueOdometer: { type: integer, minimum: 0 }
+        odometerUpdatedAt: { type: string, format: date-time }
+        odometerLastAskedAt: { type: ["string", "null"], format: date-time }
     VehicleStatus:
       allOf:
         - $ref: "#/components/schemas/Vehicle"
         - type: object
-          required: [overallStatus, dueItems]
+          required: [overallStatus, dueItems, maintenanceItems]
           properties:
             overallStatus:
               type: string
@@ -277,23 +350,44 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/DueItem"
+            maintenanceItems:
+              type: array
+              items:
+                $ref: "#/components/schemas/MaintenanceItem"
     DueItem:
       type: object
-      required: [kind, label, dueDate, daysUntilDue, status]
+      required: [key, kind, label, dueDate, daysUntilDue, dueOdometer, kmUntilDue, status, reminderSent]
       properties:
-        kind: { type: string, enum: [registration, insurance, service] }
+        key: { type: string }
+        kind: { type: string, enum: [registration, insurance, service, odometer-checkin] }
         label: { type: string }
-        dueDate: { type: string, format: date }
-        daysUntilDue: { type: integer }
+        dueDate: { type: ["string", "null"], format: date }
+        daysUntilDue: { type: ["integer", "null"] }
+        dueOdometer: { type: ["integer", "null"] }
+        kmUntilDue: { type: ["integer", "null"] }
         status: { type: string, enum: [green, amber, red] }
         reminderSent: { type: boolean }
+    MaintenanceItem:
+      type: object
+      required: [id, vehicleId, name, costAed, changeIntervalKm, lastChangedKm, nextDueKm, kmRemaining, status]
+      properties:
+        id: { type: integer }
+        vehicleId: { type: integer }
+        name: { type: string }
+        costAed: { type: number, minimum: 0 }
+        changeIntervalKm: { type: integer, minimum: 0 }
+        lastChangedKm: { type: integer, minimum: 0 }
+        nextDueKm: { type: integer, minimum: 0 }
+        kmRemaining: { type: integer }
+        status: { type: string, enum: [green, amber, red] }
     Reminder:
       type: object
-      required: [id, clientId, vehicleId, messageText, draftedAt, sent]
+      required: [id, clientId, vehicleId, dueKey, messageText, draftedAt, sent]
       properties:
         id: { type: integer }
         clientId: { type: integer }
         vehicleId: { type: integer }
+        dueKey: { type: string }
         messageText: { type: string }
         draftedAt: { type: string, format: date-time }
         sent: { type: boolean }
@@ -337,7 +431,7 @@ components:
         notes: { type: string }
     VehicleInput:
       type: object
-      required: [model, plate, registrationExpiry, insuranceExpiry, lastServiceDate, nextServiceDue]
+      required: [model, plate, registrationExpiry, insuranceExpiry, nextServiceDue, currentOdometer, nextServiceDueOdometer]
       properties:
         model: { type: string }
         plate: { type: string }
@@ -345,26 +439,48 @@ components:
         insuranceExpiry: { type: string, format: date }
         lastServiceDate: { type: string, format: date }
         nextServiceDue: { type: string, format: date }
+        currentOdometer: { type: integer, minimum: 0 }
+        nextServiceDueOdometer: { type: integer, minimum: 0 }
     VehicleUpdate:
       allOf:
         - $ref: "#/components/schemas/VehicleInput"
+    MaintenanceItemInput:
+      type: object
+      required: [name, costAed, changeIntervalKm, lastChangedKm, nextDueKm]
+      properties:
+        name: { type: string, minLength: 1 }
+        costAed: { type: number, minimum: 0 }
+        changeIntervalKm: { type: integer, minimum: 0 }
+        lastChangedKm: { type: integer, minimum: 0 }
+        nextDueKm: { type: integer, minimum: 0 }
+    MaintenanceItemUpdate:
+      allOf:
+        - $ref: "#/components/schemas/MaintenanceItemInput"
+    OdometerInput:
+      type: object
+      required: [currentOdometer]
+      properties:
+        currentOdometer: { type: integer, minimum: 0 }
     ReminderInput:
       type: object
-      required: [clientId, vehicleId, messageText]
+      required: [clientId, vehicleId, dueKey, messageText]
       properties:
         clientId: { type: integer }
         vehicleId: { type: integer }
+        dueKey: { type: string }
         messageText: { type: string }
     DraftReminderInput:
       type: object
-      required: [clientName, model, plate, dueLabel, dueDate, daysUntilDue]
+      required: [clientName, model, plate, dueLabel, reminderType, dueDate, daysUntilDue, currentOdometer]
       properties:
         clientName: { type: string }
         model: { type: string }
         plate: { type: string }
         dueLabel: { type: string }
-        dueDate: { type: string, format: date }
-        daysUntilDue: { type: integer }
+        reminderType: { type: string, enum: [due-item, odometer-checkin] }
+        dueDate: { type: ["string", "null"], format: date }
+        daysUntilDue: { type: ["integer", "null"] }
+        currentOdometer: { type: integer, minimum: 0 }
     DraftReminderResult:
       type: object
       required: [message]

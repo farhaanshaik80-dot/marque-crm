@@ -13,11 +13,19 @@ export function formatLongDate(value = new Date()) {
   return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(value);
 }
 
-export function relativeDue(days: number) {
-  if (days < 0) return `${Math.abs(days)}d overdue`;
-  if (days === 0) return 'Due today';
-  if (days === 1) return 'Due tomorrow';
-  return `${days}d to go`;
+export function relativeDue(days: number | null, km?: number | null) {
+  const parts = [];
+  if (days !== null && days !== undefined) {
+    if (days < 0) parts.push(`${Math.abs(days)}d overdue`);
+    else if (days === 0) parts.push('Due today');
+    else if (days === 1) parts.push('Due tomorrow');
+    else parts.push(`${days}d to go`);
+  }
+  if (km !== null && km !== undefined) {
+    if (km < 0) parts.push(`${Math.abs(km)}km overdue`);
+    else parts.push(`${km}km to go`);
+  }
+  return parts.length ? parts.join(' · ') : 'Due';
 }
 
 export function StatusPill({ status, label }: { status: string; label?: string }) {
@@ -27,25 +35,32 @@ export function StatusPill({ status, label }: { status: string; label?: string }
 }
 
 export function DueItemRow({
+  clientName,
   item,
   onDraft,
   drafted,
 }: {
+  clientName?: string;
   item: DueItem;
   onDraft?: () => void;
   drafted?: boolean;
 }) {
+  const label = item.kind === 'odometer-checkin' && clientName ? `Ask ${clientName} for their current km` : item.label;
   return (
-    <div className="flex items-center gap-3 border-t hairline py-3 first:border-t-0" data-testid={`due-item-${item.kind}-${item.dueDate}`}>
+    <div className="flex items-center gap-3 border-t hairline py-3 first:border-t-0" data-testid={`due-item-${item.key || item.kind}`}>
       <div className={`flex size-8 shrink-0 items-center justify-center rounded-full ${item.status === 'red' ? 'bg-red-100 text-red-700' : item.status === 'amber' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
         {item.status === 'green' ? <Check size={15} /> : <Clock3 size={15} />}
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-[13px] font-semibold text-foreground">{item.label}</p>
+          <p className="truncate text-[13px] font-semibold text-foreground">{label}</p>
           {item.reminderSent && <span className="text-[10px] font-semibold uppercase tracking-[.14em] text-emerald-700">Sent</span>}
         </div>
-        <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground"><CalendarDays size={11} /> {formatDate(item.dueDate)} <span className="text-border">·</span> {relativeDue(item.daysUntilDue)}</p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+          {item.dueDate && <><CalendarDays size={11} /> {formatDate(item.dueDate)} <span className="text-border">·</span></>} 
+          {relativeDue(item.daysUntilDue, item.kmUntilDue)}
+          {item.dueOdometer !== null && <> <span className="text-border">·</span> Due at {item.dueOdometer}km</>}
+        </p>
       </div>
       {item.status !== 'green' && onDraft && (
         <button type="button" onClick={onDraft} disabled={drafted} className="inline-flex shrink-0 items-center gap-1 rounded-sm border border-border bg-background px-2.5 py-1.5 text-[11px] font-bold text-foreground transition hover:border-primary hover:bg-accent disabled:cursor-default disabled:opacity-60" data-testid={`button-draft-${item.kind}`}>

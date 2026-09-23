@@ -28,6 +28,13 @@ export interface Vehicle {
   insuranceExpiry: string;
   lastServiceDate: string;
   nextServiceDue: string;
+  /** @minimum 0 */
+  currentOdometer: number;
+  /** @minimum 0 */
+  nextServiceDueOdometer: number;
+  odometerUpdatedAt: string;
+  /** @nullable */
+  odometerLastAskedAt: string | null;
 }
 
 export type VehicleStatusOverallStatus = typeof VehicleStatusOverallStatus[keyof typeof VehicleStatusOverallStatus];
@@ -46,6 +53,7 @@ export const DueItemKind = {
   registration: 'registration',
   insurance: 'insurance',
   service: 'service',
+  'odometer-checkin': 'odometer-checkin',
 } as const;
 
 export type DueItemStatus = typeof DueItemStatus[keyof typeof DueItemStatus];
@@ -58,17 +66,50 @@ export const DueItemStatus = {
 } as const;
 
 export interface DueItem {
+  key: string;
   kind: DueItemKind;
   label: string;
-  dueDate: string;
-  daysUntilDue: number;
+  /** @nullable */
+  dueDate: string | null;
+  /** @nullable */
+  daysUntilDue: number | null;
+  /** @nullable */
+  dueOdometer: number | null;
+  /** @nullable */
+  kmUntilDue: number | null;
   status: DueItemStatus;
-  reminderSent?: boolean;
+  reminderSent: boolean;
+}
+
+export type MaintenanceItemStatus = typeof MaintenanceItemStatus[keyof typeof MaintenanceItemStatus];
+
+
+export const MaintenanceItemStatus = {
+  green: 'green',
+  amber: 'amber',
+  red: 'red',
+} as const;
+
+export interface MaintenanceItem {
+  id: number;
+  vehicleId: number;
+  name: string;
+  /** @minimum 0 */
+  costAed: number;
+  /** @minimum 0 */
+  changeIntervalKm: number;
+  /** @minimum 0 */
+  lastChangedKm: number;
+  /** @minimum 0 */
+  nextDueKm: number;
+  kmRemaining: number;
+  status: MaintenanceItemStatus;
 }
 
 export type VehicleStatus = Vehicle & {
   overallStatus: VehicleStatusOverallStatus;
   dueItems: DueItem[];
+  maintenanceItems: MaintenanceItem[];
 };
 
 export type ClientSummary = Client & {
@@ -79,6 +120,7 @@ export interface Reminder {
   id: number;
   clientId: number;
   vehicleId: number;
+  dueKey: string;
   messageText: string;
   draftedAt: string;
   sent: boolean;
@@ -106,8 +148,12 @@ export interface VehicleInput {
   plate: string;
   registrationExpiry: string;
   insuranceExpiry: string;
-  lastServiceDate: string;
+  lastServiceDate?: string;
   nextServiceDue: string;
+  /** @minimum 0 */
+  currentOdometer: number;
+  /** @minimum 0 */
+  nextServiceDueOdometer: number;
 }
 
 export interface ClientInput {
@@ -131,19 +177,53 @@ export interface ClientUpdate {
 
 export type VehicleUpdate = VehicleInput;
 
+export interface MaintenanceItemInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minimum 0 */
+  costAed: number;
+  /** @minimum 0 */
+  changeIntervalKm: number;
+  /** @minimum 0 */
+  lastChangedKm: number;
+  /** @minimum 0 */
+  nextDueKm: number;
+}
+
+export type MaintenanceItemUpdate = MaintenanceItemInput;
+
+export interface OdometerInput {
+  /** @minimum 0 */
+  currentOdometer: number;
+}
+
 export interface ReminderInput {
   clientId: number;
   vehicleId: number;
+  dueKey: string;
   messageText: string;
 }
+
+export type DraftReminderInputReminderType = typeof DraftReminderInputReminderType[keyof typeof DraftReminderInputReminderType];
+
+
+export const DraftReminderInputReminderType = {
+  'due-item': 'due-item',
+  'odometer-checkin': 'odometer-checkin',
+} as const;
 
 export interface DraftReminderInput {
   clientName: string;
   model: string;
   plate: string;
   dueLabel: string;
-  dueDate: string;
-  daysUntilDue: number;
+  reminderType: DraftReminderInputReminderType;
+  /** @nullable */
+  dueDate: string | null;
+  /** @nullable */
+  daysUntilDue: number | null;
+  /** @minimum 0 */
+  currentOdometer: number;
 }
 
 export interface DraftReminderResult {

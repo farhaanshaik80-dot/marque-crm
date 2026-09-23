@@ -6,10 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DueItem } from './dueItem';
+import type { MaintenanceItem } from './maintenanceItem';
 import type { Vehicle } from './vehicle';
 import type { VehicleStatusOverallStatus } from './vehicleStatusOverallStatus';
 
 export type VehicleStatus = Vehicle & {
   overallStatus: VehicleStatusOverallStatus;
   dueItems: DueItem[];
+  maintenanceItems: MaintenanceItem[];
 };

@@ -4,7 +4,7 @@ import { ArrowLeft, LoaderCircle } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { getGetDashboardQueryKey, getListClientsQueryKey, useCreateClient, type ClientInput } from '@workspace/api-client-react';
 
-const blankVehicle = { model: '', plate: '', registrationExpiry: '', insuranceExpiry: '', lastServiceDate: '', nextServiceDue: '' };
+const blankVehicle = { model: '', plate: '', registrationExpiry: '', insuranceExpiry: '', lastServiceDate: '', nextServiceDue: '', currentOdometer: 0, nextServiceDueOdometer: 0 };
 const today = new Date().toISOString().slice(0, 10);
 
 export default function NewClient() {
@@ -14,10 +14,10 @@ export default function NewClient() {
   const [form, setForm] = useState<ClientInput>({ name: '', phone: '', tier: 'Signature', retainerAmount: 0, clientSince: today, notes: '', vehicles: [{ ...blankVehicle }] });
 
   const update = (key: keyof ClientInput, value: string | number) => setForm((current) => ({ ...current, [key]: value }));
-  const updateVehicle = (key: keyof typeof blankVehicle, value: string) => setForm((current) => ({ ...current, vehicles: [{ ...current.vehicles[0], [key]: value }] }));
+  const updateVehicle = (key: keyof typeof blankVehicle, value: string | number) => setForm((current) => ({ ...current, vehicles: [{ ...current.vehicles[0], [key]: value }] }));
   const submit = () => createClient.mutate({ data: form }, { onSuccess: (client) => { queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); queryClient.invalidateQueries({ queryKey: getListClientsQueryKey() }); setLocation(`/clients/${client.id}`); } });
   const vehicle = form.vehicles[0];
-  const requiredFieldsComplete = Boolean(form.name && form.phone && vehicle.model && vehicle.plate && vehicle.registrationExpiry && vehicle.insuranceExpiry && vehicle.nextServiceDue);
+  const requiredFieldsComplete = Boolean(form.name && form.phone && vehicle.model && vehicle.plate && vehicle.registrationExpiry && vehicle.insuranceExpiry && vehicle.nextServiceDue && vehicle.nextServiceDueOdometer > 0);
 
   return <div className="min-h-[calc(100dvh-72px)] bg-background">
     <div className="mx-auto max-w-[1080px] p-5 sm:p-8 lg:p-11">
@@ -45,7 +45,9 @@ export default function NewClient() {
               <label className="field-label">Plate<input value={vehicle.plate} onChange={(event) => updateVehicle('plate', event.target.value)} className="field-input" data-testid="input-vehicle-plate" /></label>
               <label className="field-label">Registration expiry<input type="date" value={vehicle.registrationExpiry} onChange={(event) => updateVehicle('registrationExpiry', event.target.value)} className="field-input" data-testid="input-registration-expiry" /></label>
               <label className="field-label">Insurance expiry<input type="date" value={vehicle.insuranceExpiry} onChange={(event) => updateVehicle('insuranceExpiry', event.target.value)} className="field-input" data-testid="input-insurance-expiry" /></label>
-              <label className="field-label">Next service due<input type="date" value={vehicle.nextServiceDue} onChange={(event) => updateVehicle('nextServiceDue', event.target.value)} className="field-input" data-testid="input-service-due" /></label>
+              <label className="field-label">Next service due (Date)<input type="date" value={vehicle.nextServiceDue} onChange={(event) => updateVehicle('nextServiceDue', event.target.value)} className="field-input" data-testid="input-service-due" /></label>
+              <label className="field-label">Current Odometer (km)<input type="number" value={vehicle.currentOdometer || ''} onChange={(event) => updateVehicle('currentOdometer', Number(event.target.value))} className="field-input" data-testid="input-current-odometer" /></label>
+              <label className="field-label">Next Service Due Odometer (km)<input type="number" value={vehicle.nextServiceDueOdometer || ''} onChange={(event) => updateVehicle('nextServiceDueOdometer', Number(event.target.value))} className="field-input" data-testid="input-next-service-odometer" /></label>
             </div>
           </div>
           <div className="mt-7 flex justify-end">

@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import {
   clientsTable,
   db,
   remindersLogTable,
+  maintenanceItemsTable,
   vehiclesTable,
 } from "@workspace/db";
 import {
@@ -28,12 +29,17 @@ import {
   ListRemindersResponse,
   MarkReminderSentResponse,
   DraftReminderResponse,
+  CreateMaintenanceItemParams, CreateMaintenanceItemBody, CreateMaintenanceItemResponse,
+  UpdateMaintenanceItemParams, UpdateMaintenanceItemBody, UpdateMaintenanceItemResponse,
+  DeleteMaintenanceItemParams, DeleteMaintenanceItemResponse,
+  UpdateVehicleOdometerParams, UpdateVehicleOdometerBody, UpdateVehicleOdometerResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-type DueKind = "registration" | "insurance" | "service";
+type DueKind = "registration" | "insurance" | "service" | "odometer-checkin";
+type Status = "green" | "amber" | "red";
 
 function formatDate(value: Date | string): string {
   if (typeof value === "string") return value.slice(0, 10);
@@ -51,6 +57,14 @@ function statusForDays(days: number): "green" | "amber" | "red" {
   if (days < 0 || days <= 7) return "red";
   if (days <= 30) return "amber";
   return "green";
+}
+function statusForKm(km: number): Status {
+  if (km <= 0) return "red";
+  if (km <= 1000) return "amber";
+  return "green";
+}
+function worse(a: Status, b: Status): Status {
+  return a === "red" || b === "red" ? "red" : a === "amber" || b === "amber" ? "amber" : "green";
 }
 
 function dateForOffset(days: number): string {
@@ -102,6 +116,8 @@ async function seedIfEmptyInternal(): Promise<void> {
       insuranceExpiry: dateForOffset(18),
       lastServiceDate: dateForOffset(-174),
       nextServiceDue: dateForOffset(6),
+      currentOdometer: 42000,
+      nextServiceDueOdometer: 45000,
     },
     {
       clientId: marcus.id,
@@ -111,6 +127,8 @@ async function seedIfEmptyInternal(): Promise<void> {
       insuranceExpiry: dateForOffset(74),
       lastServiceDate: dateForOffset(-112),
       nextServiceDue: dateForOffset(21),
+      currentOdometer: 28000,
+      nextServiceDueOdometer: 30000,
     },
     {
       clientId: leila.id,
@@ -120,6 +138,8 @@ async function seedIfEmptyInternal(): Promise<void> {
       insuranceExpiry: dateForOffset(5),
       lastServiceDate: dateForOffset(-201),
       nextServiceDue: dateForOffset(64),
+      currentOdometer: 51000,
+      nextServiceDueOdometer: 55000,
     },
   ]);
 }
@@ -141,6 +161,7 @@ async function getReminderRows(clientId?: number) {
       id: remindersLogTable.id,
       clientId: remindersLogTable.clientId,
       vehicleId: remindersLogTable.vehicleId,
+      dueKey: remindersLogTable.dueKey,
       messageText: remindersLogTable.messageText,
       draftedAt: remindersLogTable.draftedAt,
       sent: remindersLogTable.sent,
@@ -157,28 +178,40 @@ async function getReminderRows(clientId?: number) {
 
 function buildVehicleStatus(
   vehicle: typeof vehiclesTable.$inferSelect,
-  sentVehicleIds: Set<number>,
+  clientName: string,
+  maintenance: Array<typeof maintenanceItemsTable.$inferSelect>,
+  sentKeys: Set<string>,
 ) {
-  const reminderSent = sentVehicleIds.has(vehicle.id);
-  const rawDueItems: Array<{ kind: DueKind; label: string; dueDate: string }> = [
-    { kind: "registration", label: "Registration", dueDate: vehicle.registrationExpiry },
-    { kind: "insurance", label: "Insurance", dueDate: vehicle.insuranceExpiry },
-    { kind: "service", label: "Service due", dueDate: vehicle.nextServiceDue },
+  const rawDueItems: Array<{ kind: DueKind; label: string; dueDate: string | null; dueOdometer?: number | null; key: string }> = [
+    { kind: "registration", label: "Registration", dueDate: vehicle.registrationExpiry, dueOdometer: null, key: `registration-${vehicle.registrationExpiry}` },
+    { kind: "insurance", label: "Insurance", dueDate: vehicle.insuranceExpiry, dueOdometer: null, key: `insurance-${vehicle.insuranceExpiry}` },
+    { kind: "service", label: "Service due", dueDate: vehicle.nextServiceDue, dueOdometer: vehicle.nextServiceDueOdometer, key: `service-${vehicle.nextServiceDue}-${vehicle.nextServiceDueOdometer}` },
   ];
+  const anchor = Math.max(vehicle.odometerUpdatedAt.getTime(), vehicle.odometerLastAskedAt?.getTime() ?? 0);
+  if (Date.now() - anchor >= 15 * DAY_MS) rawDueItems.push({ kind: "odometer-checkin", label: `Ask ${clientName} for their current km`, dueDate: null, dueOdometer: null, key: `odometer-checkin-${new Date(anchor).toISOString().slice(0, 10)}` });
   const dueItems = rawDueItems
     .map((item) => {
-      const days = daysUntil(item.dueDate);
+      const days = item.dueDate ? daysUntil(item.dueDate) : null;
+      const km = item.dueOdometer == null ? null : item.dueOdometer - vehicle.currentOdometer;
+      const dateStatus = days == null ? "green" : statusForDays(days);
+      const mileageStatus = km == null ? "green" : statusForKm(km);
       return {
         ...item,
         daysUntilDue: days,
-        status: statusForDays(days),
-        reminderSent,
+        dueDate: item.dueDate,
+        kmUntilDue: km,
+        status: item.kind === "odometer-checkin" ? "amber" : worse(dateStatus, mileageStatus),
+        reminderSent: sentKeys.has(`${vehicle.id}:${item.key}`),
       };
     })
-    .filter((item) => !reminderSent || (item.daysUntilDue <= 30 && item.daysUntilDue < 0));
+    .filter((item) => !item.reminderSent);
+  const maintenanceItems = maintenance.map((item) => {
+    const kmRemaining = item.nextDueKm - vehicle.currentOdometer;
+    return { ...item, costAed: Number(item.costAed), kmRemaining, status: statusForKm(kmRemaining) };
+  });
 
-  const overallStatus = dueItems.reduce<"green" | "amber" | "red">(
-    (current, item) => (item.status === "red" || current === "red" ? "red" : item.status === "amber" || current === "amber" ? "amber" : "green"),
+  const overallStatus = [...dueItems, ...maintenanceItems].reduce<"green" | "amber" | "red">(
+    (current, item) => worse(current, item.status),
     "green",
   );
 
@@ -191,19 +224,24 @@ function buildVehicleStatus(
     insuranceExpiry: vehicle.insuranceExpiry,
     lastServiceDate: vehicle.lastServiceDate,
     nextServiceDue: vehicle.nextServiceDue,
+    currentOdometer: vehicle.currentOdometer,
+    nextServiceDueOdometer: vehicle.nextServiceDueOdometer,
+    odometerUpdatedAt: vehicle.odometerUpdatedAt,
+    odometerLastAskedAt: vehicle.odometerLastAskedAt,
     overallStatus,
     dueItems,
+    maintenanceItems,
   };
 }
 
 async function getClientSummaries() {
   const clients = await db.select().from(clientsTable).orderBy(clientsTable.name);
   const vehicles = await db.select().from(vehiclesTable);
-  const sentRows = await db
-    .select({ vehicleId: remindersLogTable.vehicleId })
+  const [sentRows, maintenance] = await Promise.all([db
+    .select({ vehicleId: remindersLogTable.vehicleId, dueKey: remindersLogTable.dueKey })
     .from(remindersLogTable)
-    .where(eq(remindersLogTable.sent, true));
-  const sentVehicleIds = new Set(sentRows.map((row) => row.vehicleId));
+    .where(eq(remindersLogTable.sent, true)), db.select().from(maintenanceItemsTable)]);
+  const sentKeys = new Set(sentRows.map((row) => `${row.vehicleId}:${row.dueKey}`));
 
   return clients.map((client) => ({
     id: client.id,
@@ -215,10 +253,10 @@ async function getClientSummaries() {
     notes: client.notes,
     vehicles: vehicles
       .filter((vehicle) => vehicle.clientId === client.id)
-      .map((vehicle) => buildVehicleStatus(vehicle, sentVehicleIds))
+       .map((vehicle) => buildVehicleStatus(vehicle, client.name, maintenance.filter((item) => item.vehicleId === vehicle.id), sentKeys))
       .sort((a, b) => {
-        const aSoonest = Math.min(...a.dueItems.map((item) => item.daysUntilDue), 9999);
-        const bSoonest = Math.min(...b.dueItems.map((item) => item.daysUntilDue), 9999);
+         const aSoonest = Math.min(...a.dueItems.map((item) => item.daysUntilDue ?? 9999), 9999);
+         const bSoonest = Math.min(...b.dueItems.map((item) => item.daysUntilDue ?? 9999), 9999);
         return aSoonest - bSoonest;
       }),
   }));
@@ -280,7 +318,7 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
   const clients = await getClientSummaries();
   const reminders = await getReminderRows();
   const dueSoonCount = clients.reduce(
-    (total, client) => total + client.vehicles.reduce((count, vehicle) => count + vehicle.dueItems.filter((item) => item.daysUntilDue <= 30).length, 0),
+    (total, client) => total + client.vehicles.reduce((count, vehicle) => count + vehicle.dueItems.filter((item) => item.status !== "green").length, 0),
     0,
   );
   const monthStart = new Date();
@@ -326,8 +364,10 @@ router.post("/clients", async (req, res): Promise<void> => {
       plate: vehicle.plate,
       registrationExpiry: formatDate(vehicle.registrationExpiry),
       insuranceExpiry: formatDate(vehicle.insuranceExpiry),
-      lastServiceDate: formatDate(vehicle.lastServiceDate),
+      lastServiceDate: vehicle.lastServiceDate ? formatDate(vehicle.lastServiceDate) : formatDate(new Date()),
       nextServiceDue: formatDate(vehicle.nextServiceDue),
+      currentOdometer: vehicle.currentOdometer,
+      nextServiceDueOdometer: vehicle.nextServiceDueOdometer,
     });
   }
   res.status(201).json(CreateClientResponse.parse(await getClientDetail(client.id)));
@@ -396,11 +436,14 @@ router.post("/clients/:id/vehicles", async (req, res): Promise<void> => {
       plate: body.data.plate,
       registrationExpiry: formatDate(body.data.registrationExpiry),
       insuranceExpiry: formatDate(body.data.insuranceExpiry),
-      lastServiceDate: formatDate(body.data.lastServiceDate),
+      lastServiceDate: body.data.lastServiceDate ? formatDate(body.data.lastServiceDate) : formatDate(new Date()),
       nextServiceDue: formatDate(body.data.nextServiceDue),
+      currentOdometer: body.data.currentOdometer,
+      nextServiceDueOdometer: body.data.nextServiceDueOdometer,
     })
     .returning();
-  res.status(201).json(CreateVehicleResponse.parse(buildVehicleStatus(vehicle, new Set())));
+  const client = await db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId));
+  res.status(201).json(CreateVehicleResponse.parse(buildVehicleStatus(vehicle, client[0]?.name ?? "", [], new Set())));
 });
 
 router.patch("/vehicles/:id", async (req, res): Promise<void> => {
@@ -414,6 +457,11 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: body.error.message });
     return;
   }
+  const [existing] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
+  if (!existing) {
+    res.status(404).json({ error: "Vehicle not found" });
+    return;
+  }
   const [vehicle] = await db
     .update(vehiclesTable)
     .set({
@@ -421,8 +469,11 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
       plate: body.data.plate,
       registrationExpiry: formatDate(body.data.registrationExpiry),
       insuranceExpiry: formatDate(body.data.insuranceExpiry),
-      lastServiceDate: formatDate(body.data.lastServiceDate),
+      lastServiceDate: formatDate(body.data.lastServiceDate ?? new Date()),
       nextServiceDue: formatDate(body.data.nextServiceDue),
+      currentOdometer: body.data.currentOdometer,
+      nextServiceDueOdometer: body.data.nextServiceDueOdometer,
+      ...(body.data.currentOdometer !== existing.currentOdometer ? { odometerUpdatedAt: new Date() } : {}),
     })
     .where(eq(vehiclesTable.id, params.data.id))
     .returning();
@@ -431,10 +482,65 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
     return;
   }
   const sentRows = await db
-    .select({ vehicleId: remindersLogTable.vehicleId })
+    .select({ dueKey: remindersLogTable.dueKey })
     .from(remindersLogTable)
     .where(and(eq(remindersLogTable.vehicleId, vehicle.id), eq(remindersLogTable.sent, true)));
-  res.json(UpdateVehicleResponse.parse(buildVehicleStatus(vehicle, new Set(sentRows.map((row) => row.vehicleId)))));
+  const client = await db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId));
+  const items = await db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, vehicle.id));
+  res.json(UpdateVehicleResponse.parse(buildVehicleStatus(vehicle, client[0]?.name ?? "", items, new Set(sentRows.map((row) => `${vehicle.id}:${row.dueKey}`)))));
+});
+
+router.patch("/vehicles/:id/odometer", async (req, res): Promise<void> => {
+  const params = UpdateVehicleOdometerParams.safeParse(req.params);
+  const body = UpdateVehicleOdometerBody.safeParse(req.body);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  const [vehicle] = await db
+    .update(vehiclesTable)
+    .set({ currentOdometer: body.data.currentOdometer, odometerUpdatedAt: new Date() })
+    .where(eq(vehiclesTable.id, params.data.id))
+    .returning();
+  if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
+  const [[client], items, sentRows] = await Promise.all([
+    db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId)),
+    db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, vehicle.id)),
+    db.select({ dueKey: remindersLogTable.dueKey }).from(remindersLogTable).where(and(eq(remindersLogTable.vehicleId, vehicle.id), eq(remindersLogTable.sent, true))),
+  ]);
+  res.json(UpdateVehicleOdometerResponse.parse(buildVehicleStatus(vehicle, client?.name ?? "", items, new Set(sentRows.map((row) => `${vehicle.id}:${row.dueKey}`)))));
+});
+
+router.post("/vehicles/:id/maintenance-items", async (req, res): Promise<void> => {
+  const params = CreateMaintenanceItemParams.safeParse(req.params);
+  const body = CreateMaintenanceItemBody.safeParse(req.body);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
+  if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
+  const [item] = await db.insert(maintenanceItemsTable).values({ vehicleId: vehicle.id, ...body.data, costAed: String(body.data.costAed) }).returning();
+  const remaining = item.nextDueKm - vehicle.currentOdometer;
+  res.status(201).json(CreateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: statusForKm(remaining) }));
+});
+
+router.patch("/maintenance-items/:id", async (req, res): Promise<void> => {
+  const params = UpdateMaintenanceItemParams.safeParse(req.params);
+  const body = UpdateMaintenanceItemBody.safeParse(req.body);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
+  const [existing] = await db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Maintenance item not found" }); return; }
+  const [item] = await db.update(maintenanceItemsTable).set({ ...body.data, costAed: String(body.data.costAed) }).where(eq(maintenanceItemsTable.id, params.data.id)).returning();
+  const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, item.vehicleId));
+  const remaining = item.nextDueKm - (vehicle?.currentOdometer ?? 0);
+  res.json(UpdateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: statusForKm(remaining) }));
+});
+
+router.delete("/maintenance-items/:id", async (req, res): Promise<void> => {
+  const params = DeleteMaintenanceItemParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [item] = await db.delete(maintenanceItemsTable).where(eq(maintenanceItemsTable.id, params.data.id)).returning();
+  if (!item) { res.status(404).json({ error: "Maintenance item not found" }); return; }
+  DeleteMaintenanceItemResponse.parse(undefined);
+  res.sendStatus(204);
 });
 
 router.get("/clients/:id/reminders", async (req, res): Promise<void> => {
@@ -457,6 +563,7 @@ router.post("/reminders", async (req, res): Promise<void> => {
     .values({
       clientId: parsed.data.clientId,
       vehicleId: parsed.data.vehicleId,
+      dueKey: parsed.data.dueKey,
       messageText: parsed.data.messageText,
       sent: true,
       sentAt: new Date(),
@@ -467,6 +574,7 @@ router.post("/reminders", async (req, res): Promise<void> => {
       id: remindersLogTable.id,
       clientId: remindersLogTable.clientId,
       vehicleId: remindersLogTable.vehicleId,
+      dueKey: remindersLogTable.dueKey,
       messageText: remindersLogTable.messageText,
       draftedAt: remindersLogTable.draftedAt,
       sent: remindersLogTable.sent,
@@ -476,6 +584,9 @@ router.post("/reminders", async (req, res): Promise<void> => {
     .from(remindersLogTable)
     .leftJoin(vehiclesTable, eq(remindersLogTable.vehicleId, vehiclesTable.id))
     .where(eq(remindersLogTable.id, reminder.id));
+  if (parsed.data.dueKey.startsWith("odometer-checkin-")) {
+    await db.update(vehiclesTable).set({ odometerLastAskedAt: new Date() }).where(eq(vehiclesTable.id, parsed.data.vehicleId));
+  }
   res.status(201).json(MarkReminderSentResponse.parse(withVehicle));
 });
 
@@ -486,9 +597,10 @@ router.post("/ai/draft-reminder", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const result = await callGemini(
-      `Write one short, friendly WhatsApp-style message from a luxury car concierge. Return only valid JSON with exactly this shape: {"message":""}. Address the client by name, mention their car model, and clearly mention the ${parsed.data.dueLabel.toLowerCase()} date of ${formatDate(parsed.data.dueDate)}. It is ${parsed.data.daysUntilDue < 0 ? `${Math.abs(parsed.data.daysUntilDue)} days overdue` : `due in ${parsed.data.daysUntilDue} days`}. Do not use emojis. Client: ${parsed.data.clientName}. Car: ${parsed.data.model}, plate ${parsed.data.plate}.`,
-    );
+    const prompt = parsed.data.reminderType === "odometer-checkin"
+      ? `Write one short, friendly WhatsApp-style message from a luxury car concierge asking the client for a quick photo of their odometer and current kilometres. Return only valid JSON with exactly this shape: {"message":""}. Do not use emojis. Client: ${parsed.data.clientName}. Car: ${parsed.data.model}, plate ${parsed.data.plate}.`
+      : `Write one short, friendly WhatsApp-style message from a luxury car concierge. Return only valid JSON with exactly this shape: {"message":""}. Address the client by name, mention their car model, and clearly mention the ${parsed.data.dueLabel.toLowerCase()} date of ${formatDate(parsed.data.dueDate!)}. It is ${parsed.data.daysUntilDue! < 0 ? `${Math.abs(parsed.data.daysUntilDue!)} days overdue` : `due in ${parsed.data.daysUntilDue!} days`}. Do not use emojis. Client: ${parsed.data.clientName}. Car: ${parsed.data.model}, plate ${parsed.data.plate}.`;
+    const result = await callGemini(prompt);
     res.json(DraftReminderResponse.parse(JSON.parse(result)));
   } catch (error) {
     req.log.error({ err: error }, "Gemini reminder drafting failed");

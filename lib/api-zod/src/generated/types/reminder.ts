@@ -10,6 +10,7 @@ export interface Reminder {
   id: number;
   clientId: number;
   vehicleId: number;
+  dueKey: string;
   messageText: string;
   draftedAt: Date;
   sent: boolean;

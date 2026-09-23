@@ -28,10 +28,15 @@ import type {
   DraftReminderInput,
   DraftReminderResult,
   HealthStatus,
+  MaintenanceItem,
+  MaintenanceItemInput,
+  MaintenanceItemUpdate,
+  OdometerInput,
   Reminder,
   ReminderInput,
   Vehicle,
   VehicleInput,
+  VehicleStatus,
   VehicleUpdate
 } from './api.schemas';
 
@@ -724,6 +729,347 @@ export const useUpdateVehicle = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateVehicleMutationOptions(options));
+    }
+
+export const getCreateMaintenanceItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/vehicles/${id}/maintenance-items`
+}
+
+/**
+ * @summary Add a maintenance item to a vehicle
+ */
+export const createMaintenanceItem = async (id: number,
+    maintenanceItemInput: MaintenanceItemInput, options?: Parameters<typeof customFetch>[1]): Promise<MaintenanceItem> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MaintenanceItem>(getCreateMaintenanceItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(maintenanceItemInput)
+  }
+);}
+
+
+
+
+
+export const getCreateMaintenanceItemMutationKey = () => ['createMaintenanceItem'] as const;
+
+export const getCreateMaintenanceItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenanceItem>>, TError,CreateMaintenanceItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMaintenanceItem>>, TError,CreateMaintenanceItemMutationVariables, TContext> => {
+
+const mutationKey = getCreateMaintenanceItemMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMaintenanceItem>>, CreateMaintenanceItemMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createMaintenanceItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMaintenanceItemMutationResult = NonNullable<Awaited<ReturnType<typeof createMaintenanceItem>>>
+    export type CreateMaintenanceItemMutationBody = BodyType<MaintenanceItemInput>
+    export type CreateMaintenanceItemMutationError = ErrorType<unknown>
+    export type CreateMaintenanceItemMutationVariables = {id: number;data: BodyType<MaintenanceItemInput>}
+
+    /**
+ * @summary Add a maintenance item to a vehicle
+ */
+export const useCreateMaintenanceItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMaintenanceItem>>, TError,CreateMaintenanceItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMaintenanceItem>>,
+        TError,
+        CreateMaintenanceItemMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateMaintenanceItemMutationOptions(options));
+    }
+
+export const getUpdateVehicleOdometerUrl = (id: number,) => {
+
+
+
+
+  return `/api/vehicles/${id}/odometer`
+}
+
+/**
+ * @summary Record a current odometer reading
+ */
+export const updateVehicleOdometer = async (id: number,
+    odometerInput: OdometerInput, options?: Parameters<typeof customFetch>[1]): Promise<VehicleStatus> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VehicleStatus>(getUpdateVehicleOdometerUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(odometerInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateVehicleOdometerMutationKey = () => ['updateVehicleOdometer'] as const;
+
+export const getUpdateVehicleOdometerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVehicleOdometer>>, TError,UpdateVehicleOdometerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateVehicleOdometer>>, TError,UpdateVehicleOdometerMutationVariables, TContext> => {
+
+const mutationKey = getUpdateVehicleOdometerMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVehicleOdometer>>, UpdateVehicleOdometerMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateVehicleOdometer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateVehicleOdometerMutationResult = NonNullable<Awaited<ReturnType<typeof updateVehicleOdometer>>>
+    export type UpdateVehicleOdometerMutationBody = BodyType<OdometerInput>
+    export type UpdateVehicleOdometerMutationError = ErrorType<unknown>
+    export type UpdateVehicleOdometerMutationVariables = {id: number;data: BodyType<OdometerInput>}
+
+    /**
+ * @summary Record a current odometer reading
+ */
+export const useUpdateVehicleOdometer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVehicleOdometer>>, TError,UpdateVehicleOdometerMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateVehicleOdometer>>,
+        TError,
+        UpdateVehicleOdometerMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateVehicleOdometerMutationOptions(options));
+    }
+
+export const getUpdateMaintenanceItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/maintenance-items/${id}`
+}
+
+/**
+ * @summary Update a maintenance item
+ */
+export const updateMaintenanceItem = async (id: number,
+    maintenanceItemUpdate: MaintenanceItemUpdate, options?: Parameters<typeof customFetch>[1]): Promise<MaintenanceItem> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MaintenanceItem>(getUpdateMaintenanceItemUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(maintenanceItemUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateMaintenanceItemMutationKey = () => ['updateMaintenanceItem'] as const;
+
+export const getUpdateMaintenanceItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenanceItem>>, TError,UpdateMaintenanceItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMaintenanceItem>>, TError,UpdateMaintenanceItemMutationVariables, TContext> => {
+
+const mutationKey = getUpdateMaintenanceItemMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMaintenanceItem>>, UpdateMaintenanceItemMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMaintenanceItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMaintenanceItemMutationResult = NonNullable<Awaited<ReturnType<typeof updateMaintenanceItem>>>
+    export type UpdateMaintenanceItemMutationBody = BodyType<MaintenanceItemUpdate>
+    export type UpdateMaintenanceItemMutationError = ErrorType<unknown>
+    export type UpdateMaintenanceItemMutationVariables = {id: number;data: BodyType<MaintenanceItemUpdate>}
+
+    /**
+ * @summary Update a maintenance item
+ */
+export const useUpdateMaintenanceItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMaintenanceItem>>, TError,UpdateMaintenanceItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMaintenanceItem>>,
+        TError,
+        UpdateMaintenanceItemMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateMaintenanceItemMutationOptions(options));
+    }
+
+export const getDeleteMaintenanceItemUrl = (id: number,) => {
+
+
+
+
+  return `/api/maintenance-items/${id}`
+}
+
+/**
+ * @summary Remove a maintenance item
+ */
+export const deleteMaintenanceItem = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteMaintenanceItemUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteMaintenanceItemMutationKey = () => ['deleteMaintenanceItem'] as const;
+
+export const getDeleteMaintenanceItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenanceItem>>, TError,DeleteMaintenanceItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenanceItem>>, TError,DeleteMaintenanceItemMutationVariables, TContext> => {
+
+const mutationKey = getDeleteMaintenanceItemMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMaintenanceItem>>, DeleteMaintenanceItemMutationVariables> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteMaintenanceItem(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMaintenanceItemMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMaintenanceItem>>>
+
+    export type DeleteMaintenanceItemMutationError = ErrorType<unknown>
+    export type DeleteMaintenanceItemMutationVariables = {id: number}
+
+    /**
+ * @summary Remove a maintenance item
+ */
+export const useDeleteMaintenanceItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMaintenanceItem>>, TError,DeleteMaintenanceItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMaintenanceItem>>,
+        TError,
+        DeleteMaintenanceItemMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteMaintenanceItemMutationOptions(options));
     }
 
 export const getListRemindersUrl = (id: number,) => {

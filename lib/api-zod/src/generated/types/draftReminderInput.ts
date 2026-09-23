@@ -5,12 +5,18 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DraftReminderInputReminderType } from './draftReminderInputReminderType';
 
 export interface DraftReminderInput {
   clientName: string;
   model: string;
   plate: string;
   dueLabel: string;
-  dueDate: Date;
-  daysUntilDue: number;
+  reminderType: DraftReminderInputReminderType;
+  /** @nullable */
+  dueDate: Date | null;
+  /** @nullable */
+  daysUntilDue: number | null;
+  /** @minimum 0 */
+  currentOdometer: number;
 }

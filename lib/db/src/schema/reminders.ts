@@ -8,6 +8,7 @@ export const remindersLogTable = pgTable("reminders_log", {
   id: serial("id").primaryKey(),
   clientId: integer("client_id").notNull().references(() => clientsTable.id, { onDelete: "cascade" }),
   vehicleId: integer("vehicle_id").notNull().references(() => vehiclesTable.id, { onDelete: "cascade" }),
+  dueKey: text("due_key").notNull().default("general"),
   messageText: text("message_text").notNull(),
   draftedAt: timestamp("drafted_at", { withTimezone: true }).notNull().defaultNow(),
   sent: boolean("sent").notNull().default(false),

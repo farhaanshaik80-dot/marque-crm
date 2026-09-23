@@ -9,10 +9,17 @@ import type { DueItemKind } from './dueItemKind';
 import type { DueItemStatus } from './dueItemStatus';
 
 export interface DueItem {
+  key: string;
   kind: DueItemKind;
   label: string;
-  dueDate: Date;
-  daysUntilDue: number;
+  /** @nullable */
+  dueDate: Date | null;
+  /** @nullable */
+  daysUntilDue: number | null;
+  /** @nullable */
+  dueOdometer: number | null;
+  /** @nullable */
+  kmUntilDue: number | null;
   status: DueItemStatus;
-  reminderSent?: boolean;
+  reminderSent: boolean;
 }

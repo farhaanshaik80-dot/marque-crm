@@ -11,6 +11,10 @@ export interface VehicleInput {
   plate: string;
   registrationExpiry: Date;
   insuranceExpiry: Date;
-  lastServiceDate: Date;
+  lastServiceDate?: Date;
   nextServiceDue: Date;
+  /** @minimum 0 */
+  currentOdometer: number;
+  /** @minimum 0 */
+  nextServiceDueOdometer: number;
 }

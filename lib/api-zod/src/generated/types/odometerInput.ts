@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ReminderInput {
-  clientId: number;
-  vehicleId: number;
-  dueKey: string;
-  messageText: string;
+export interface OdometerInput {
+  /** @minimum 0 */
+  currentOdometer: number;
 }

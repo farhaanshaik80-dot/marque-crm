@@ -15,4 +15,11 @@ export interface Vehicle {
   insuranceExpiry: Date;
   lastServiceDate: Date;
   nextServiceDue: Date;
+  /** @minimum 0 */
+  currentOdometer: number;
+  /** @minimum 0 */
+  nextServiceDueOdometer: number;
+  odometerUpdatedAt: Date;
+  /** @nullable */
+  odometerLastAskedAt: Date | null;
 }

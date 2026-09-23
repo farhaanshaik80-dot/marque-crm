@@ -13,4 +13,5 @@ export const DueItemKind = {
   registration: 'registration',
   insurance: 'insurance',
   service: 'service',
+  'odometer-checkin': 'odometer-checkin',
 } as const;

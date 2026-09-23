@@ -89,6 +89,25 @@ export interface DueItem {
   reminderSent: boolean;
 }
 
+export type MaintenanceItemItemType = typeof MaintenanceItemItemType[keyof typeof MaintenanceItemItemType];
+
+
+export const MaintenanceItemItemType = {
+  maintenance: 'maintenance',
+  payment: 'payment',
+} as const;
+
+/**
+ * @nullable
+ */
+export type MaintenanceItemPhotoContentType = typeof MaintenanceItemPhotoContentType[keyof typeof MaintenanceItemPhotoContentType] | null;
+
+
+export const MaintenanceItemPhotoContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+} as const;
+
 export type MaintenanceItemStatus = typeof MaintenanceItemStatus[keyof typeof MaintenanceItemStatus];
 
 
@@ -101,16 +120,34 @@ export const MaintenanceItemStatus = {
 export interface MaintenanceItem {
   id: number;
   vehicleId: number;
+  itemType: MaintenanceItemItemType;
   name: string;
   /** @minimum 0 */
   costAed: number;
-  /** @minimum 0 */
-  changeIntervalKm: number;
-  /** @minimum 0 */
-  lastChangedKm: number;
-  /** @minimum 0 */
-  nextDueKm: number;
-  kmRemaining: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  currentKm: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  changeIntervalKm: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  nextDueKm: number | null;
+  dateRecorded: string;
+  /** @nullable */
+  photoObjectPath: string | null;
+  /** @nullable */
+  photoOriginalFileName: string | null;
+  /** @nullable */
+  photoContentType: MaintenanceItemPhotoContentType;
+  /** @nullable */
+  kmRemaining: number | null;
   status: MaintenanceItemStatus;
 }
 
@@ -208,17 +245,35 @@ export interface ClientUpdate {
 
 export type VehicleUpdate = VehicleInput;
 
+export type MaintenanceItemInputItemType = typeof MaintenanceItemInputItemType[keyof typeof MaintenanceItemInputItemType];
+
+
+export const MaintenanceItemInputItemType = {
+  maintenance: 'maintenance',
+  payment: 'payment',
+} as const;
+
+export type MaintenanceItemInputPhotoContentType = typeof MaintenanceItemInputPhotoContentType[keyof typeof MaintenanceItemInputPhotoContentType];
+
+
+export const MaintenanceItemInputPhotoContentType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+} as const;
+
 export interface MaintenanceItemInput {
+  itemType: MaintenanceItemInputItemType;
   /** @minLength 1 */
   name: string;
   /** @minimum 0 */
   costAed: number;
   /** @minimum 0 */
-  changeIntervalKm: number;
+  changeIntervalKm?: number;
   /** @minimum 0 */
-  lastChangedKm: number;
-  /** @minimum 0 */
-  nextDueKm: number;
+  currentKm?: number;
+  photoObjectPath?: string;
+  photoOriginalFileName?: string;
+  photoContentType?: MaintenanceItemInputPhotoContentType;
 }
 
 export type MaintenanceItemUpdate = MaintenanceItemInput;

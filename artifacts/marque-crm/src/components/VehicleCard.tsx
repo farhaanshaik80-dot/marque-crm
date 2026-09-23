@@ -24,6 +24,7 @@ import {
   useDeleteMaintenanceItem,
   useUpdateVehicleMulkiya,
   useRequestUploadUrl,
+  useDiscardUpload,
   type VehicleStatus,
   type VehicleInput,
   type MaintenanceItemInput,
@@ -48,6 +49,7 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
   const updateOdometer = useUpdateVehicleOdometer();
   const updateMulkiya = useUpdateVehicleMulkiya();
   const requestUploadUrl = useRequestUploadUrl();
+  const discardUpload = useDiscardUpload();
 
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<VehicleInput>({ 
@@ -132,15 +134,22 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
   const deleteMaintenanceItem = useDeleteMaintenanceItem();
   const [showMaintForm, setShowMaintForm] = useState(false);
   const [editMaintId, setEditMaintId] = useState<number | null>(null);
-  
-  // Notice nextDueKm is computed below when inputs change. 
-  // It shouldn't be asked in the form but the backend still requires it, so we derive it.
-  const blankMaintItem = { name: '', costAed: 0, changeIntervalKm: 10000, lastChangedKm: vehicle.currentOdometer, nextDueKm: vehicle.currentOdometer + 10000 };
+  const [uploadingMaintPhoto, setUploadingMaintPhoto] = useState(false);
+  const blankMaintItem: MaintenanceItemInput = { itemType: 'maintenance', name: '', costAed: 0 };
   const [maintForm, setMaintForm] = useState<MaintenanceItemInput>(blankMaintItem);
 
   const startEditMaint = (item: MaintenanceItem) => {
     setEditMaintId(item.id);
-    setMaintForm({ name: item.name, costAed: item.costAed, changeIntervalKm: item.changeIntervalKm, lastChangedKm: item.lastChangedKm, nextDueKm: item.nextDueKm });
+    setMaintForm({
+      itemType: item.itemType,
+      name: item.name,
+      costAed: item.costAed,
+      changeIntervalKm: item.changeIntervalKm ?? undefined,
+      currentKm: item.currentKm ?? undefined,
+      photoObjectPath: item.photoObjectPath ?? undefined,
+      photoOriginalFileName: item.photoOriginalFileName ?? undefined,
+      photoContentType: item.photoContentType ?? undefined,
+    });
     setShowMaintForm(true);
   };
   
@@ -167,13 +176,34 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
   };
 
   const setMaintField = (k: keyof MaintenanceItemInput, v: string | number) => {
-    setMaintForm((prev) => {
-      const next = { ...prev, [k]: v };
-      if (k === 'changeIntervalKm' || k === 'lastChangedKm') {
-        next.nextDueKm = Number(next.lastChangedKm) + Number(next.changeIntervalKm);
-      }
-      return next;
-    });
+    setMaintForm((prev) => ({ ...prev, [k]: v }));
+  };
+
+  const handleMaintenancePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!isAuthenticated) { login(); return; }
+    if (!['image/jpeg', 'image/png'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      alert('Choose a JPEG or PNG smaller than 10MB.');
+      return;
+    }
+    setUploadingMaintPhoto(true);
+    try {
+      if (maintForm.photoObjectPath && !editMaintId) discardUpload.mutate({ data: { objectPath: maintForm.photoObjectPath } });
+      const upload = await requestUploadUrl.mutateAsync({ data: { name: file.name, size: file.size, contentType: file.type } });
+      const put = await fetch(upload.uploadURL, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file });
+      if (!put.ok) throw new Error('Photo upload failed');
+      setMaintForm((current) => ({
+        ...current,
+        photoObjectPath: upload.objectPath,
+        photoOriginalFileName: file.name,
+        photoContentType: file.type as 'image/jpeg' | 'image/png',
+      }));
+    } catch (error: any) {
+      alert(error.message || 'Photo upload failed');
+    } finally {
+      setUploadingMaintPhoto(false);
+    }
   };
 
   return (
@@ -287,14 +317,14 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
             </div>
             {showMaintForm && (
               <div className="mb-4 rounded-sm border border-border bg-muted/20 p-4 grid gap-3 sm:grid-cols-2">
+                <label className="field-label sm:col-span-2">Item type<select className="field-input" value={maintForm.itemType} onChange={(e) => setMaintForm((current) => ({ ...current, itemType: e.target.value as 'maintenance' | 'payment', currentKm: undefined, changeIntervalKm: undefined }))} data-testid="select-maint-type"><option value="maintenance">Maintenance</option><option value="payment">Payment</option></select></label>
                 <label className="field-label sm:col-span-2">Item Name<input className="field-input" value={maintForm.name} onChange={(e) => setMaintField('name', e.target.value)} data-testid="input-maint-name" placeholder="e.g. Brake Pads" /></label>
                 <label className="field-label">Cost (AED)<input type="number" className="field-input" value={maintForm.costAed || ''} onChange={(e) => setMaintField('costAed', Number(e.target.value))} data-testid="input-maint-cost" /></label>
-                <label className="field-label">Interval (km)<input type="number" className="field-input" value={maintForm.changeIntervalKm || ''} onChange={(e) => setMaintField('changeIntervalKm', Number(e.target.value))} data-testid="input-maint-interval" /></label>
-                <label className="field-label">Last Changed (km)<input type="number" className="field-input" value={maintForm.lastChangedKm || ''} onChange={(e) => setMaintField('lastChangedKm', Number(e.target.value))} data-testid="input-maint-last-changed" /></label>
-                <label className="field-label">Next Due (km)<input type="number" className="field-input opacity-70 bg-muted cursor-not-allowed" readOnly value={maintForm.nextDueKm || ''} data-testid="input-maint-next-due" title="Auto-computed" /></label>
+                {maintForm.itemType === 'maintenance' && <><label className="field-label">Current km<input type="number" className="field-input" value={maintForm.currentKm ?? ''} onChange={(e) => setMaintForm((current) => ({ ...current, currentKm: e.target.value === '' ? undefined : Number(e.target.value) }))} data-testid="input-maint-current-km" /></label><label className="field-label">Interval (km, optional)<input type="number" className="field-input" value={maintForm.changeIntervalKm ?? ''} onChange={(e) => setMaintForm((current) => ({ ...current, changeIntervalKm: e.target.value === '' ? undefined : Number(e.target.value) }))} data-testid="input-maint-interval" /></label></>}
+                <label className="field-label sm:col-span-2">Photo (optional)<span className="field-input inline-flex items-center gap-2 cursor-pointer"><UploadCloud size={14} />{uploadingMaintPhoto ? 'Uploading…' : maintForm.photoOriginalFileName || 'Upload JPEG/PNG'}<input type="file" hidden accept="image/jpeg,image/png" onChange={handleMaintenancePhoto} disabled={uploadingMaintPhoto} data-testid="input-maint-photo" /></span></label>
                 <div className="sm:col-span-2 flex justify-end gap-2 mt-2">
                   <button type="button" onClick={() => setShowMaintForm(false)} className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">Cancel</button>
-                  <button type="button" onClick={saveMaint} disabled={!maintForm.name || createMaintenanceItem.isPending || updateMaintenanceItem.isPending} className="rounded-sm bg-primary px-4 py-1.5 text-xs font-bold uppercase tracking-[.1em] text-primary-foreground disabled:opacity-50">Save Item</button>
+                  <button type="button" onClick={saveMaint} disabled={!maintForm.name || uploadingMaintPhoto || createMaintenanceItem.isPending || updateMaintenanceItem.isPending} className="rounded-sm bg-primary px-4 py-1.5 text-xs font-bold uppercase tracking-[.1em] text-primary-foreground disabled:opacity-50">{uploadingMaintPhoto ? 'Uploading photo…' : 'Save Item'}</button>
                 </div>
               </div>
             )}
@@ -305,11 +335,15 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-[13px] font-semibold text-foreground">{item.name}</p>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{item.itemType}</span>
                         <StatusPill status={item.status} label={item.status === 'green' ? 'OK' : item.status === 'amber' ? 'Soon' : 'Due'} />
                       </div>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        {item.kmRemaining}km remaining <span className="mx-1 text-border">·</span> Due at {item.nextDueKm}km <span className="mx-1 text-border">·</span> AED {item.costAed}
+                        {item.itemType === 'maintenance' && item.currentKm != null && <>Recorded at {item.currentKm.toLocaleString()}km <span className="mx-1 text-border">·</span></>}
+                        {item.kmRemaining != null && <>Due in {item.kmRemaining.toLocaleString()}km <span className="mx-1 text-border">·</span></>}
+                        AED {item.costAed} <span className="mx-1 text-border">·</span> {formatDate(item.dateRecorded)}
                       </p>
+                      {item.photoObjectPath && <div className="mt-1 flex gap-3"><a href={`/api/storage${item.photoObjectPath}`} target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-wider text-primary">View photo</a><a href={`/api/storage${item.photoObjectPath}?download=1`} className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Download</a></div>}
                     </div>
                      <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button type="button" onClick={() => startEditMaint(item)} className="p-1.5 text-muted-foreground hover:text-primary transition" aria-label="Edit"><Edit3 size={14} /></button>
@@ -330,14 +364,14 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
             {vehicle.updateHistory?.length > 0 ? (
               <div className="relative border-l border-border ml-2 space-y-4 pb-2">
                 {[...vehicle.updateHistory].sort((a,b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime()).map(h => {
-                  const humanField = h.fieldChanged.replace(/([A-Z])/g, ' $1').toLowerCase();
+                  const humanField = h.fieldChanged === 'reminder_sent' ? 'Reminder sent' : h.fieldChanged.replace(/([A-Z])/g, ' $1').replaceAll('_', ' ').toLowerCase();
                   const isOdometer = h.fieldChanged.toLowerCase().includes('odometer');
                   return (
                     <div key={h.id} className="relative pl-4">
                       <div className="absolute w-2 h-2 bg-border rounded-full -left-[4.5px] top-1.5"></div>
                       <p className="text-xs font-medium capitalize">{humanField}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {h.oldValue || 'None'} → {h.newValue} {isOdometer && 'km'}
+                        {h.fieldChanged === 'reminder_sent' ? h.newValue : <>{h.oldValue || 'None'} → {h.newValue} {isOdometer && 'km'}</>}
                       </p>
                       <p className="text-[9px] text-muted-foreground/60 mt-1 font-mono">{formatDate(h.changedAt)}</p>
                     </div>

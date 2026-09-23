@@ -251,8 +251,13 @@ function buildVehicleStatus(
     })
     .filter((item) => !item.reminderSent);
   const maintenanceItems = maintenance.map((item) => {
-    const kmRemaining = item.nextDueKm - vehicle.currentOdometer;
-    return { ...item, costAed: Number(item.costAed), kmRemaining, status: statusForKm(kmRemaining) };
+    const kmRemaining = item.nextDueKm == null ? null : item.nextDueKm - vehicle.currentOdometer;
+    return {
+      ...item,
+      costAed: Number(item.costAed),
+      kmRemaining,
+      status: kmRemaining == null || item.itemType === "payment" ? "green" : statusForKm(kmRemaining),
+    };
   });
 
   const overallStatus = [...dueItems, ...maintenanceItems].reduce<"green" | "amber" | "red">(
@@ -569,8 +574,6 @@ router.patch("/vehicles/:id/odometer", async (req, res): Promise<void> => {
     const nextServiceDueOdometer = current.serviceIntervalKm > 0 ? body.data.currentOdometer + current.serviceIntervalKm : 0;
     const [updated] = await tx.update(vehiclesTable).set({ currentOdometer: body.data.currentOdometer, nextServiceDueOdometer, odometerUpdatedAt: new Date() }).where(eq(vehiclesTable.id, params.data.id)).returning();
     await tx.insert(vehicleUpdateHistoryTable).values({ vehicleId: current.id, fieldChanged: "current_odometer_km", oldValue: String(current.currentOdometer), newValue: String(body.data.currentOdometer) });
-    const items = await tx.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, current.id));
-    for (const item of items) await tx.update(maintenanceItemsTable).set({ nextDueKm: item.lastChangedKm + item.changeIntervalKm }).where(eq(maintenanceItemsTable.id, item.id));
     return [updated];
   });
   if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
@@ -589,9 +592,34 @@ router.post("/vehicles/:id/maintenance-items", async (req, res): Promise<void> =
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
   const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, params.data.id));
   if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
-  const [item] = await db.insert(maintenanceItemsTable).values({ vehicleId: vehicle.id, ...body.data, nextDueKm: body.data.lastChangedKm + body.data.changeIntervalKm, costAed: String(body.data.costAed) }).returning();
-  const remaining = item.nextDueKm - vehicle.currentOdometer;
-  res.status(201).json(CreateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: statusForKm(remaining) }));
+  if (body.data.photoObjectPath && !req.isAuthenticated()) { res.status(401).json({ error: "Login is required to attach a photo" }); return; }
+  try {
+    const itemType = body.data.itemType;
+    const currentKm = itemType === "maintenance" ? body.data.currentKm ?? null : null;
+    const interval = itemType === "maintenance" ? body.data.changeIntervalKm ?? null : null;
+    const nextDueKm = currentKm != null && interval != null ? currentKm + interval : null;
+    const photoObjectPath = body.data.photoObjectPath
+      ? await objectStorageService.trySetObjectEntityAclPolicy(body.data.photoObjectPath, { owner: req.user!.id, visibility: "private" })
+      : null;
+    const [item] = await db.insert(maintenanceItemsTable).values({
+      vehicleId: vehicle.id,
+      itemType,
+      name: body.data.name,
+      costAed: String(body.data.costAed),
+      currentKm,
+      changeIntervalKm: interval,
+      nextDueKm,
+      dateRecorded: formatDate(new Date()),
+      photoObjectPath,
+      photoOriginalFileName: body.data.photoOriginalFileName ?? null,
+      photoContentType: body.data.photoContentType ?? null,
+    }).returning();
+    const remaining = item.nextDueKm == null ? null : item.nextDueKm - vehicle.currentOdometer;
+    res.status(201).json(CreateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: remaining == null ? "green" : statusForKm(remaining) }));
+  } catch (error) {
+    req.log.error({ err: error }, "Maintenance item save failed");
+    res.status(400).json({ error: "Maintenance item photo could not be secured" });
+  }
 });
 
 router.patch("/maintenance-items/:id", async (req, res): Promise<void> => {
@@ -601,10 +629,34 @@ router.patch("/maintenance-items/:id", async (req, res): Promise<void> => {
   if (!body.success) { res.status(400).json({ error: body.error.message }); return; }
   const [existing] = await db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Maintenance item not found" }); return; }
-  const [item] = await db.update(maintenanceItemsTable).set({ ...body.data, nextDueKm: body.data.lastChangedKm + body.data.changeIntervalKm, costAed: String(body.data.costAed) }).where(eq(maintenanceItemsTable.id, params.data.id)).returning();
-  const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, item.vehicleId));
-  const remaining = item.nextDueKm - (vehicle?.currentOdometer ?? 0);
-  res.json(UpdateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: statusForKm(remaining) }));
+  if (body.data.photoObjectPath && !req.isAuthenticated()) { res.status(401).json({ error: "Login is required to attach a photo" }); return; }
+  try {
+    const itemType = body.data.itemType;
+    const currentKm = itemType === "maintenance" ? body.data.currentKm ?? null : null;
+    const interval = itemType === "maintenance" ? body.data.changeIntervalKm ?? null : null;
+    const nextDueKm = currentKm != null && interval != null ? currentKm + interval : null;
+    const photoObjectPath = body.data.photoObjectPath
+      ? await objectStorageService.trySetObjectEntityAclPolicy(body.data.photoObjectPath, { owner: req.user!.id, visibility: "private" })
+      : existing.photoObjectPath;
+    const [item] = await db.update(maintenanceItemsTable).set({
+      itemType,
+      name: body.data.name,
+      costAed: String(body.data.costAed),
+      currentKm,
+      changeIntervalKm: interval,
+      nextDueKm,
+      dateRecorded: formatDate(new Date()),
+      photoObjectPath,
+      photoOriginalFileName: body.data.photoOriginalFileName ?? existing.photoOriginalFileName,
+      photoContentType: body.data.photoContentType ?? existing.photoContentType,
+    }).where(eq(maintenanceItemsTable.id, params.data.id)).returning();
+    const [vehicle] = await db.select().from(vehiclesTable).where(eq(vehiclesTable.id, item.vehicleId));
+    const remaining = item.nextDueKm == null ? null : item.nextDueKm - (vehicle?.currentOdometer ?? 0);
+    res.json(UpdateMaintenanceItemResponse.parse({ ...item, costAed: Number(item.costAed), kmRemaining: remaining, status: remaining == null ? "green" : statusForKm(remaining) }));
+  } catch (error) {
+    req.log.error({ err: error }, "Maintenance item update failed");
+    res.status(400).json({ error: "Maintenance item photo could not be secured" });
+  }
 });
 
 router.delete("/maintenance-items/:id", async (req, res): Promise<void> => {
@@ -701,17 +753,26 @@ router.post("/reminders", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const [reminder] = await db
-    .insert(remindersLogTable)
-    .values({
-      clientId: parsed.data.clientId,
+  const [reminder] = await db.transaction(async (tx) => {
+    const [saved] = await tx.insert(remindersLogTable).values({
+        clientId: parsed.data.clientId,
+        vehicleId: parsed.data.vehicleId,
+        dueKey: parsed.data.dueKey,
+        messageText: parsed.data.messageText,
+        sent: true,
+        sentAt: new Date(),
+      }).returning();
+    await tx.insert(vehicleUpdateHistoryTable).values({
       vehicleId: parsed.data.vehicleId,
-      dueKey: parsed.data.dueKey,
-      messageText: parsed.data.messageText,
-      sent: true,
-      sentAt: new Date(),
-    })
-    .returning();
+      fieldChanged: "reminder_sent",
+      oldValue: parsed.data.dueKey,
+      newValue: parsed.data.messageText,
+    });
+    if (parsed.data.dueKey.startsWith("odometer-checkin-")) {
+      await tx.update(vehiclesTable).set({ odometerLastAskedAt: new Date() }).where(eq(vehiclesTable.id, parsed.data.vehicleId));
+    }
+    return [saved];
+  });
   const [withVehicle] = await db
     .select({
       id: remindersLogTable.id,
@@ -727,9 +788,6 @@ router.post("/reminders", async (req, res): Promise<void> => {
     .from(remindersLogTable)
     .leftJoin(vehiclesTable, eq(remindersLogTable.vehicleId, vehiclesTable.id))
     .where(eq(remindersLogTable.id, reminder.id));
-  if (parsed.data.dueKey.startsWith("odometer-checkin-")) {
-    await db.update(vehiclesTable).set({ odometerLastAskedAt: new Date() }).where(eq(vehiclesTable.id, parsed.data.vehicleId));
-  }
   res.status(201).json(MarkReminderSentResponse.parse(withVehicle));
 });
 

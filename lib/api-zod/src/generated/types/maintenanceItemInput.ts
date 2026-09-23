@@ -5,16 +5,20 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MaintenanceItemInputItemType } from './maintenanceItemInputItemType';
+import type { MaintenanceItemInputPhotoContentType } from './maintenanceItemInputPhotoContentType';
 
 export interface MaintenanceItemInput {
+  itemType: MaintenanceItemInputItemType;
   /** @minLength 1 */
   name: string;
   /** @minimum 0 */
   costAed: number;
   /** @minimum 0 */
-  changeIntervalKm: number;
+  changeIntervalKm?: number;
   /** @minimum 0 */
-  lastChangedKm: number;
-  /** @minimum 0 */
-  nextDueKm: number;
+  currentKm?: number;
+  photoObjectPath?: string;
+  photoOriginalFileName?: string;
+  photoContentType?: MaintenanceItemInputPhotoContentType;
 }

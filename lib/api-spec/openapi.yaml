@@ -632,16 +632,21 @@ components:
         reminderSent: { type: boolean }
     MaintenanceItem:
       type: object
-      required: [id, vehicleId, name, costAed, changeIntervalKm, lastChangedKm, nextDueKm, kmRemaining, status]
+      required: [id, vehicleId, itemType, name, costAed, currentKm, changeIntervalKm, nextDueKm, dateRecorded, photoObjectPath, photoOriginalFileName, photoContentType, kmRemaining, status]
       properties:
         id: { type: integer }
         vehicleId: { type: integer }
+        itemType: { type: string, enum: [maintenance, payment] }
         name: { type: string }
         costAed: { type: number, minimum: 0 }
-        changeIntervalKm: { type: integer, minimum: 0 }
-        lastChangedKm: { type: integer, minimum: 0 }
-        nextDueKm: { type: integer, minimum: 0 }
-        kmRemaining: { type: integer }
+        currentKm: { type: ["integer", "null"], minimum: 0 }
+        changeIntervalKm: { type: ["integer", "null"], minimum: 0 }
+        nextDueKm: { type: ["integer", "null"], minimum: 0 }
+        dateRecorded: { type: string, format: date }
+        photoObjectPath: { type: ["string", "null"] }
+        photoOriginalFileName: { type: ["string", "null"] }
+        photoContentType: { type: ["string", "null"], enum: [image/jpeg, image/png, null] }
+        kmRemaining: { type: ["integer", "null"] }
         status: { type: string, enum: [green, amber, red] }
     Reminder:
       type: object
@@ -717,13 +722,16 @@ components:
         - $ref: "#/components/schemas/VehicleInput"
     MaintenanceItemInput:
       type: object
-      required: [name, costAed, changeIntervalKm, lastChangedKm, nextDueKm]
+      required: [itemType, name, costAed]
       properties:
+        itemType: { type: string, enum: [maintenance, payment] }
         name: { type: string, minLength: 1 }
         costAed: { type: number, minimum: 0 }
         changeIntervalKm: { type: integer, minimum: 0 }
-        lastChangedKm: { type: integer, minimum: 0 }
-        nextDueKm: { type: integer, minimum: 0 }
+        currentKm: { type: integer, minimum: 0 }
+        photoObjectPath: { type: string }
+        photoOriginalFileName: { type: string }
+        photoContentType: { type: string, enum: [image/jpeg, image/png] }
     MaintenanceItemUpdate:
       allOf:
         - $ref: "#/components/schemas/MaintenanceItemInput"

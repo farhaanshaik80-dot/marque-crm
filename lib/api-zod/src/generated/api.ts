@@ -28,9 +28,9 @@ export const getDashboardResponseClientsItemTwoVehiclesItemOneNextServiceDueOdom
 
 export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -77,12 +77,17 @@ export const GetDashboardResponse = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(getDashboardResponseClientsItemTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({
@@ -113,9 +118,9 @@ export const listClientsResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
 export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -161,12 +166,17 @@ export const ListClientsResponseItem = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(listClientsResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({
@@ -229,9 +239,9 @@ export const createClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0
 
 export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -277,12 +287,17 @@ export const CreateClientResponse = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(createClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({
@@ -326,9 +341,9 @@ export const getClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0;
 
 export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -374,12 +389,17 @@ export const GetClientResponse = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(getClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({
@@ -432,9 +452,9 @@ export const updateClientResponseTwoVehiclesItemOneNextServiceDueOdometerMin = 0
 
 export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -480,12 +500,17 @@ export const UpdateClientResponse = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(updateClientResponseTwoVehiclesItemTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({
@@ -638,25 +663,26 @@ export const createMaintenanceItemBodyCostAedMin = 0;
 
 export const createMaintenanceItemBodyChangeIntervalKmMin = 0;
 
-export const createMaintenanceItemBodyLastChangedKmMin = 0;
-
-export const createMaintenanceItemBodyNextDueKmMin = 0;
+export const createMaintenanceItemBodyCurrentKmMin = 0;
 
 
 
 export const CreateMaintenanceItemBody = zod.object({
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string().min(1),
   "costAed": zod.number().min(createMaintenanceItemBodyCostAedMin),
-  "changeIntervalKm": zod.number().int().min(createMaintenanceItemBodyChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(createMaintenanceItemBodyLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(createMaintenanceItemBodyNextDueKmMin)
+  "changeIntervalKm": zod.number().int().min(createMaintenanceItemBodyChangeIntervalKmMin).optional(),
+  "currentKm": zod.number().int().min(createMaintenanceItemBodyCurrentKmMin).optional(),
+  "photoObjectPath": zod.string().optional(),
+  "photoOriginalFileName": zod.string().optional(),
+  "photoContentType": zod.enum(['image/jpeg', 'image/png']).optional()
 })
 
 export const createMaintenanceItemResponseCostAedMin = 0;
 
-export const createMaintenanceItemResponseChangeIntervalKmMin = 0;
+export const createMaintenanceItemResponseCurrentKmMin = 0;
 
-export const createMaintenanceItemResponseLastChangedKmMin = 0;
+export const createMaintenanceItemResponseChangeIntervalKmMin = 0;
 
 export const createMaintenanceItemResponseNextDueKmMin = 0;
 
@@ -665,12 +691,17 @@ export const createMaintenanceItemResponseNextDueKmMin = 0;
 export const CreateMaintenanceItemResponse = zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(createMaintenanceItemResponseCostAedMin),
-  "changeIntervalKm": zod.number().int().min(createMaintenanceItemResponseChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(createMaintenanceItemResponseLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(createMaintenanceItemResponseNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(createMaintenanceItemResponseCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(createMaintenanceItemResponseChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(createMaintenanceItemResponseNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })
 
@@ -701,9 +732,9 @@ export const updateVehicleOdometerResponseOneNextServiceDueOdometerMin = 0;
 
 export const updateVehicleOdometerResponseTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const updateVehicleOdometerResponseTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const updateVehicleOdometerResponseTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const updateVehicleOdometerResponseTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const updateVehicleOdometerResponseTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const updateVehicleOdometerResponseTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -740,12 +771,17 @@ export const UpdateVehicleOdometerResponse = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(updateVehicleOdometerResponseTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({
@@ -774,25 +810,26 @@ export const updateMaintenanceItemBodyOneCostAedMin = 0;
 
 export const updateMaintenanceItemBodyOneChangeIntervalKmMin = 0;
 
-export const updateMaintenanceItemBodyOneLastChangedKmMin = 0;
-
-export const updateMaintenanceItemBodyOneNextDueKmMin = 0;
+export const updateMaintenanceItemBodyOneCurrentKmMin = 0;
 
 
 
 export const UpdateMaintenanceItemBody = zod.object({
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string().min(1),
   "costAed": zod.number().min(updateMaintenanceItemBodyOneCostAedMin),
-  "changeIntervalKm": zod.number().int().min(updateMaintenanceItemBodyOneChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(updateMaintenanceItemBodyOneLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(updateMaintenanceItemBodyOneNextDueKmMin)
+  "changeIntervalKm": zod.number().int().min(updateMaintenanceItemBodyOneChangeIntervalKmMin).optional(),
+  "currentKm": zod.number().int().min(updateMaintenanceItemBodyOneCurrentKmMin).optional(),
+  "photoObjectPath": zod.string().optional(),
+  "photoOriginalFileName": zod.string().optional(),
+  "photoContentType": zod.enum(['image/jpeg', 'image/png']).optional()
 })
 
 export const updateMaintenanceItemResponseCostAedMin = 0;
 
-export const updateMaintenanceItemResponseChangeIntervalKmMin = 0;
+export const updateMaintenanceItemResponseCurrentKmMin = 0;
 
-export const updateMaintenanceItemResponseLastChangedKmMin = 0;
+export const updateMaintenanceItemResponseChangeIntervalKmMin = 0;
 
 export const updateMaintenanceItemResponseNextDueKmMin = 0;
 
@@ -801,12 +838,17 @@ export const updateMaintenanceItemResponseNextDueKmMin = 0;
 export const UpdateMaintenanceItemResponse = zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(updateMaintenanceItemResponseCostAedMin),
-  "changeIntervalKm": zod.number().int().min(updateMaintenanceItemResponseChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(updateMaintenanceItemResponseLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(updateMaintenanceItemResponseNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(updateMaintenanceItemResponseCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(updateMaintenanceItemResponseChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(updateMaintenanceItemResponseNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })
 
@@ -1020,9 +1062,9 @@ export const updateVehicleMulkiyaResponseOneNextServiceDueOdometerMin = 0;
 
 export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCostAedMin = 0;
 
-export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
+export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCurrentKmMin = 0;
 
-export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemLastChangedKmMin = 0;
+export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemChangeIntervalKmMin = 0;
 
 export const updateVehicleMulkiyaResponseTwoMaintenanceItemsItemNextDueKmMin = 0;
 
@@ -1059,12 +1101,17 @@ export const UpdateVehicleMulkiyaResponse = zod.object({
   "maintenanceItems": zod.array(zod.object({
   "id": zod.number().int(),
   "vehicleId": zod.number().int(),
+  "itemType": zod.enum(['maintenance', 'payment']),
   "name": zod.string(),
   "costAed": zod.number().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCostAedMin),
-  "changeIntervalKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemChangeIntervalKmMin),
-  "lastChangedKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemLastChangedKmMin),
-  "nextDueKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemNextDueKmMin),
-  "kmRemaining": zod.number().int(),
+  "currentKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemCurrentKmMin).nullable(),
+  "changeIntervalKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemChangeIntervalKmMin).nullable(),
+  "nextDueKm": zod.number().int().min(updateVehicleMulkiyaResponseTwoMaintenanceItemsItemNextDueKmMin).nullable(),
+  "dateRecorded": zod.coerce.date(),
+  "photoObjectPath": zod.string().nullable(),
+  "photoOriginalFileName": zod.string().nullable(),
+  "photoContentType": zod.union([zod.literal('image/jpeg'),zod.literal('image/png'),zod.literal(null)]).nullable(),
+  "kmRemaining": zod.number().int().nullable(),
   "status": zod.enum(['green', 'amber', 'red'])
 })),
   "updateHistory": zod.array(zod.object({

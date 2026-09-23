@@ -5,20 +5,40 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MaintenanceItemItemType } from './maintenanceItemItemType';
+import type { MaintenanceItemPhotoContentType } from './maintenanceItemPhotoContentType';
 import type { MaintenanceItemStatus } from './maintenanceItemStatus';
 
 export interface MaintenanceItem {
   id: number;
   vehicleId: number;
+  itemType: MaintenanceItemItemType;
   name: string;
   /** @minimum 0 */
   costAed: number;
-  /** @minimum 0 */
-  changeIntervalKm: number;
-  /** @minimum 0 */
-  lastChangedKm: number;
-  /** @minimum 0 */
-  nextDueKm: number;
-  kmRemaining: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  currentKm: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  changeIntervalKm: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  nextDueKm: number | null;
+  dateRecorded: Date;
+  /** @nullable */
+  photoObjectPath: string | null;
+  /** @nullable */
+  photoOriginalFileName: string | null;
+  /** @nullable */
+  photoContentType: MaintenanceItemPhotoContentType;
+  /** @nullable */
+  kmRemaining: number | null;
   status: MaintenanceItemStatus;
 }

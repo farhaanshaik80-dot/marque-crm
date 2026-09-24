@@ -21,4 +21,19 @@ export const pool = new Pool({
 });
 export const db = drizzle(pool, { schema });
 
+// Diagnostic: print the real connection error to the logs at startup,
+// since the app's normal error logging only shows Drizzle's wrapper
+// message ("Failed query...") and hides the underlying cause.
+pool
+  .query("select 1")
+  .then(() => {
+    console.log("DB_DIAGNOSTIC: connection OK");
+  })
+  .catch((err) => {
+    console.error("DB_DIAGNOSTIC: connection FAILED");
+    console.error("DB_DIAGNOSTIC code:", err?.code);
+    console.error("DB_DIAGNOSTIC message:", err?.message);
+    console.error("DB_DIAGNOSTIC full:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+  });
+
 export * from "./schema";

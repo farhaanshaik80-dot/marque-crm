@@ -39,7 +39,6 @@ import {
   UpdateVehicleMulkiyaParams, UpdateVehicleMulkiyaBody, UpdateVehicleMulkiyaResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
 
 const router: IRouter = Router();
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -673,9 +672,7 @@ router.post("/documents/extract", async (req, res): Promise<void> => {
   const parsed = ExtractDocumentBody.safeParse(req.body);
   if (!parsed.success || !parsed.data.objectPath.startsWith("/objects/")) { res.status(400).json({ error: "A valid image object path is required" }); return; }
   try {
-    await objectStorageService.trySetObjectEntityAclPolicy(parsed.data.objectPath, { owner: req.user.id, visibility: "private" });
-    const file = await objectStorageService.getObjectEntityFile(parsed.data.objectPath);
-    const [bytes] = await file.download();
+    const bytes = await objectStorageService.downloadObjectBytes(parsed.data.objectPath);
     const prompt = `Inspect this document image and return ONLY JSON with exactly these fields: documentType (one of service_bill, part_bill, warranty_card, parking_receipt), date (YYYY-MM-DD or null), amountAed (number or null), vendorName (string), description (string), warrantyExpiry (YYYY-MM-DD or null, only warranty cards). Do not infer missing values.`;
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");

@@ -55,4 +55,27 @@ if (fs.existsSync(frontendDistDir)) {
   });
 }
 
+// Diagnostic: Express's default error handler doesn't print the real
+// underlying error (e.g. Drizzle wraps Postgres errors and only the
+// wrapper message normally surfaces in logs). This prints everything,
+// including the original cause, so we can see the true root cause.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("APP_ERROR message:", err?.message);
+  console.error("APP_ERROR cause:", err?.cause?.message ?? err?.cause);
+  console.error("APP_ERROR cause code:", err?.cause?.code);
+  console.error(
+    "APP_ERROR full:",
+    JSON.stringify(err, Object.getOwnPropertyNames(err)),
+  );
+  if (err?.cause) {
+    console.error(
+      "APP_ERROR cause full:",
+      JSON.stringify(err.cause, Object.getOwnPropertyNames(err.cause)),
+    );
+  }
+  if (res.headersSent) return;
+  res.status(500).json({ error: "Internal server error" });
+});
+
 export default app;

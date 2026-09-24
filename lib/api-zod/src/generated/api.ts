@@ -537,6 +537,19 @@ export const UpdateClientResponse = zod.object({
 
 
 /**
+ * @summary Remove a client and all their vehicles
+ */
+
+
+
+export const DeleteClientParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteClientResponse = zod.void()
+
+
+/**
  * @summary Add a vehicle to a client
  */
 
@@ -646,6 +659,19 @@ export const UpdateVehicleResponse = zod.object({
   "odometerLastAskedAt": zod.coerce.date().nullable(),
   "mulkiyaImagePath": zod.string().nullable()
 })
+
+
+/**
+ * @summary Remove a vehicle
+ */
+
+
+
+export const DeleteVehicleParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteVehicleResponse = zod.void()
 
 
 /**

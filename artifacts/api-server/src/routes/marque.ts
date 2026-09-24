@@ -12,6 +12,10 @@ import {
   CreateClientBody,
   CreateVehicleBody,
   CreateVehicleParams,
+  DeleteClientParams,
+  DeleteClientResponse,
+  DeleteVehicleParams,
+  DeleteVehicleResponse,
   DraftReminderBody,
   GetClientParams,
   ListRemindersParams,
@@ -473,6 +477,15 @@ router.patch("/clients/:id", async (req, res): Promise<void> => {
   res.json(UpdateClientResponse.parse(await getClientDetail(client.id)));
 });
 
+router.delete("/clients/:id", async (req, res): Promise<void> => {
+  const params = DeleteClientParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [client] = await db.delete(clientsTable).where(eq(clientsTable.id, params.data.id)).returning();
+  if (!client) { res.status(404).json({ error: "Client not found" }); return; }
+  DeleteClientResponse.parse(undefined);
+  res.sendStatus(204);
+});
+
 router.post("/clients/:id/vehicles", async (req, res): Promise<void> => {
   const params = CreateVehicleParams.safeParse(req.params);
   const body = CreateVehicleBody.safeParse(req.body);
@@ -560,6 +573,15 @@ router.patch("/vehicles/:id", async (req, res): Promise<void> => {
   const client = await db.select().from(clientsTable).where(eq(clientsTable.id, vehicle.clientId));
   const items = await db.select().from(maintenanceItemsTable).where(eq(maintenanceItemsTable.vehicleId, vehicle.id));
   res.json(UpdateVehicleResponse.parse(buildVehicleStatus(vehicle, client[0]?.name ?? "", items, new Set(sentRows.map((row) => `${vehicle.id}:${row.dueKey}`)))));
+});
+
+router.delete("/vehicles/:id", async (req, res): Promise<void> => {
+  const params = DeleteVehicleParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [vehicle] = await db.delete(vehiclesTable).where(eq(vehiclesTable.id, params.data.id)).returning();
+  if (!vehicle) { res.status(404).json({ error: "Vehicle not found" }); return; }
+  DeleteVehicleResponse.parse(undefined);
+  res.sendStatus(204);
 });
 
 router.patch("/vehicles/:id/odometer", async (req, res): Promise<void> => {

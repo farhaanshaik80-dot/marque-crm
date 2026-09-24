@@ -22,6 +22,7 @@ import {
   useCreateMaintenanceItem,
   useUpdateMaintenanceItem,
   useDeleteMaintenanceItem,
+  useDeleteVehicle,
   useUpdateVehicleMulkiya,
   useRequestUploadUrl,
   useDiscardUpload,
@@ -46,6 +47,7 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
   };
   
   const updateVehicle = useUpdateVehicle();
+  const deleteVehicle = useDeleteVehicle();
   const updateOdometer = useUpdateVehicleOdometer();
   const updateMulkiya = useUpdateVehicleMulkiya();
   const requestUploadUrl = useRequestUploadUrl();
@@ -66,6 +68,11 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
   const [uploadingMulkiya, setUploadingMulkiya] = useState(false);
   
   const save = () => updateVehicle.mutate({ id: vehicle.id, data: form }, { onSuccess: () => { invalidateVehicleData(); setEditing(false); } });
+
+  const removeVehicle = () => {
+    if (!window.confirm(`Remove ${vehicle.model || 'this vehicle'} (${vehicle.plate || 'no plate'})? This also deletes its maintenance history and documents.`)) return;
+    deleteVehicle.mutate({ id: vehicle.id }, { onSuccess: () => invalidateVehicleData() });
+  };
   
   const saveOdometer = () => {
     updateOdometer.mutate({ id: vehicle.id, data: { currentOdometer: odometerForm } }, {
@@ -222,6 +229,9 @@ export function VehicleCard({ vehicle, clientId }: { vehicle: VehicleStatus; cli
               <StatusPill status={vehicle.overallStatus} label={vehicle.overallStatus === 'green' ? 'Clear' : vehicle.overallStatus === 'amber' ? 'Review' : 'Action'} />
               <button type="button" onClick={() => setEditing((value) => !value)} className="rounded-sm p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground" data-testid={`button-edit-vehicle-${vehicle.id}`}>
                 <Edit3 size={15} />
+              </button>
+              <button type="button" onClick={removeVehicle} disabled={deleteVehicle.isPending} className="rounded-sm p-1.5 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50" data-testid={`button-delete-vehicle-${vehicle.id}`}>
+                <Trash2 size={15} />
               </button>
             </div>
           </div>

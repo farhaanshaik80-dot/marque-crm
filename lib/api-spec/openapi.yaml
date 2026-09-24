@@ -112,6 +112,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ClientDetail"
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Remove a client and all their vehicles
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Client removed
+        "404":
+          description: Client not found
   /clients/{id}/vehicles:
     post:
       operationId: createVehicle
@@ -152,6 +163,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Vehicle"
+    delete:
+      operationId: deleteVehicle
+      tags: [clients]
+      summary: Remove a vehicle
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Vehicle removed
+        "404":
+          description: Vehicle not found
   /vehicles/{id}/maintenance-items:
     post:
       operationId: createMaintenanceItem

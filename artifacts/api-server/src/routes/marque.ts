@@ -239,14 +239,22 @@ async function getClientDetail(id: number) {
   };
 }
 
-async function callGemini(prompt: string): Promise<string> {
+async function callGemini(
+  prompt: string,
+  image?: { mimeType: string; base64Data: string },
+): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
+  const parts: Array<Record<string, unknown>> = [{ text: prompt }];
+  if (image) {
+    parts.push({ inlineData: { mimeType: image.mimeType, data: image.base64Data } });
+  }
+
   let lastError = "Gemini returned no content";
-  for (const model of ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite"]) {
+  for (const model of ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"]) {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
@@ -254,7 +262,7 @@ async function callGemini(prompt: string): Promise<string> {
         headers: { "content-type": "application/json" },
         signal: AbortSignal.timeout(20_000),
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts }],
           generationConfig: {
             temperature: 0.2,
             responseMimeType: "application/json",
@@ -603,17 +611,12 @@ router.post("/documents/extract", async (req, res): Promise<void> => {
   try {
     const bytes = await objectStorageService.downloadObjectBytes(parsed.data.objectPath);
     const prompt = `Inspect this document image and return ONLY JSON with exactly these fields: documentType (one of service_bill, part_bill, warranty_card, parking_receipt), date (YYYY-MM-DD or null), amountAed (number or null), vendorName (string), description (string), warrantyExpiry (YYYY-MM-DD or null, only warranty cards). Do not infer missing values.`;
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }, { inlineData: { mimeType: parsed.data.contentType, data: bytes.toString("base64") } }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.1 } }) });
-    if (!response.ok) throw new Error(`Gemini status ${response.status}`);
-    const payload = await response.json() as any;
-    const text = payload.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("").replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
-    if (!text) throw new Error("Gemini returned no content");
+    const text = await callGemini(prompt, { mimeType: parsed.data.contentType, base64Data: bytes.toString("base64") });
     res.json(ExtractDocumentResponse.parse(JSON.parse(text)));
   } catch (error) {
     req.log.error({ err: error }, "Document extraction failed");
-    res.status(502).json({ error: "Gemini could not extract this document." });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    res.status(502).json({ error: `Gemini could not extract this document. ${message}` });
   }
 });
 

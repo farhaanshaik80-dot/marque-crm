@@ -6,6 +6,7 @@ import {
   useDiscardUpload,
   useExtractDocument,
   useCreateClientDocument,
+  useDeleteClientDocument,
   getGetClientQueryKey,
   type ClientDetail,
   type DocumentType
@@ -55,6 +56,17 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
   const discardUpload = useDiscardUpload();
   const extractDocument = useExtractDocument();
   const createDocument = useCreateClientDocument();
+  const deleteDocument = useDeleteClientDocument();
+
+  const handleDeleteDocument = (docId: number, description: string) => {
+    if (!window.confirm(`Remove this document (${description || 'untitled'})? This cannot be undone.`)) return;
+    deleteDocument.mutate({ id: docId }, {
+      onSuccess: () => {
+        listDocsQuery.refetch();
+        queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) });
+      },
+    });
+  };
 
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -70,6 +82,7 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
     description: string;
     warrantyExpiry: string | null;
     vehicleId: number | null;
+    currentKm: number | null;
     objectPath: string;
     originalFileName: string;
     contentType: 'image/jpeg' | 'image/png';
@@ -167,6 +180,10 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
 
       const items = extRes.length ? extRes : [{ documentType: 'service_bill' as DocumentType, date: null, amountAed: null, vendorName: '', description: '', warrantyExpiry: null }];
 
+      // If this client only has one vehicle, pre-select it so it's not easy to forget —
+      // leaving it on "None" means the item won't show up in that vehicle's Flexible Maintenance.
+      const defaultVehicle = client.vehicles.length === 1 ? client.vehicles[0] : null;
+
       setDraftDocs(items.map((item) => ({
         documentType: item.documentType,
         date: item.date || '',
@@ -174,7 +191,10 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
         vendorName: item.vendorName || '',
         description: item.description || '',
         warrantyExpiry: item.warrantyExpiry,
-        vehicleId: null,
+        vehicleId: defaultVehicle?.id ?? null,
+        // Default to the vehicle's current odometer reading — editable, since the part
+        // may have been done at an earlier reading than today's.
+        currentKm: defaultVehicle?.currentOdometer ?? null,
         objectPath: urlRes.objectPath,
         originalFileName: file.name,
         contentType: file.type as 'image/jpeg' | 'image/png'
@@ -346,14 +366,23 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
                         <input type="date" className="field-input" value={draftDoc.warrantyExpiry || ''} onChange={(e) => updateDraftDoc(index, { warrantyExpiry: e.target.value || null })} />
                       </label>
 
-                      <label className="field-label sm:col-span-2">
+                      <label className="field-label">
                         Associated Vehicle (Optional)
-                        <select className="field-input" value={draftDoc.vehicleId || ''} onChange={(e) => updateDraftDoc(index, { vehicleId: e.target.value ? Number(e.target.value) : null })}>
+                        <select className="field-input" value={draftDoc.vehicleId || ''} onChange={(e) => {
+                          const newVehicleId = e.target.value ? Number(e.target.value) : null;
+                          const newVehicle = client.vehicles.find(v => v.id === newVehicleId);
+                          updateDraftDoc(index, { vehicleId: newVehicleId, currentKm: newVehicle?.currentOdometer ?? draftDoc.currentKm });
+                        }}>
                           <option value="">None</option>
                           {client.vehicles.map(v => (
                             <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
                           ))}
                         </select>
+                      </label>
+
+                      <label className="field-label">
+                        Current KM (Optional)
+                        <input type="number" className="field-input" placeholder="Odometer at time of this part/service" value={draftDoc.currentKm ?? ''} onChange={(e) => updateDraftDoc(index, { currentKm: e.target.value === '' ? null : Number(e.target.value) })} />
                       </label>
                     </div>
 
@@ -424,6 +453,7 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
                           <div className="flex items-center gap-2 border-l border-border pl-4">
                             <a href={`/api/storage${doc.objectPath}`} target="_blank" rel="noreferrer" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition">View</a>
                             <a href={`/api/storage${doc.objectPath}?download=1`} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition">Download</a>
+                            <button type="button" onClick={() => handleDeleteDocument(doc.id, doc.description)} disabled={deleteDocument.isPending} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-destructive transition disabled:opacity-50">Delete</button>
                           </div>
                         </div>
                       </div>

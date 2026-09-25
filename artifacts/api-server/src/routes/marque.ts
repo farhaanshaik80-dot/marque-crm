@@ -40,6 +40,7 @@ import {
   UpdateVehicleOdometerParams, UpdateVehicleOdometerBody, UpdateVehicleOdometerResponse,
   ExtractDocumentBody, ExtractDocumentResponse, ListClientDocumentsParams, ListClientDocumentsResponse,
   CreateClientDocumentParams, CreateClientDocumentBody, CreateClientDocumentResponse,
+  DeleteClientDocumentParams, DeleteClientDocumentResponse,
   UpdateVehicleMulkiyaParams, UpdateVehicleMulkiyaBody, UpdateVehicleMulkiyaResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService } from "../lib/objectStorage";
@@ -666,16 +667,29 @@ router.post("/clients/:id/documents", async (req, res): Promise<void> => {
     // A part or service bill logged against a specific vehicle also shows up as a cost entry
     // in that vehicle's Flexible Maintenance list, so it doesn't only live in Documents.
     if (body.data.vehicleId != null && (body.data.documentType === "part_bill" || body.data.documentType === "service_bill")) {
+      // "maintenance" (rather than "payment") is the item type that displays the odometer
+      // reading, which is what lets this show "Recorded at X km" when currentKm is known.
       await db.insert(maintenanceItemsTable).values({
         vehicleId: body.data.vehicleId,
-        itemType: "payment",
+        itemType: "maintenance",
         name: body.data.description || body.data.vendorName,
         costAed: String(body.data.amountAed),
+        currentKm: body.data.currentKm ?? null,
         dateRecorded: formatDate(body.data.date),
       });
     }
     res.status(201).json(CreateClientDocumentResponse.parse({ ...row, date: row.documentDate, amountAed: Number(row.amountAed) }));
   } catch (error) { req.log.error({ err: error }, "Document save failed"); res.status(400).json({ error: "Object could not be secured" }); }
+});
+
+router.delete("/documents/:id", async (req, res): Promise<void> => {
+  if (!req.isAuthenticated()) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const params = DeleteClientDocumentParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: params.error.message }); return; }
+  const [doc] = await db.delete(clientDocumentsTable).where(eq(clientDocumentsTable.id, params.data.id)).returning();
+  if (!doc) { res.status(404).json({ error: "Document not found" }); return; }
+  DeleteClientDocumentResponse.parse(undefined);
+  res.sendStatus(204);
 });
 
 router.patch("/vehicles/:id/mulkiya", async (req, res): Promise<void> => {

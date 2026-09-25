@@ -350,6 +350,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ClientDocument"
+  /documents/{id}:
+    delete:
+      tags: [clients]
+      operationId: deleteClientDocument
+      summary: Remove a client document
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Document removed
+        "404":
+          description: Document not found
   /vehicles/{id}/mulkiya:
     patch:
       tags: [clients]
@@ -822,6 +834,7 @@ components:
         originalFileName: { type: string }
         contentType: { type: string, enum: [image/jpeg, image/png] }
         vehicleId: { type: ["integer", "null"] }
+        currentKm: { type: ["integer", "null"], description: "The vehicle's odometer reading at the time of this part/service, if known" }
     ClientDocument:
       type: object
       required: [id, clientId, vehicleId, documentType, date, amountAed, vendorName, description, warrantyExpiry, objectPath, originalFileName, contentType, createdAt]

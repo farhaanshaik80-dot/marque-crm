@@ -1041,7 +1041,8 @@ export const CreateClientDocumentBody = zod.object({
   "objectPath": zod.string(),
   "originalFileName": zod.string(),
   "contentType": zod.enum(['image/jpeg', 'image/png']),
-  "vehicleId": zod.number().int().nullish()
+  "vehicleId": zod.number().int().nullish(),
+  "currentKm": zod.number().int().nullish().describe('The vehicle\'s odometer reading at the time of this part/service, if known')
 })
 
 export const createClientDocumentResponseAmountAedMin = 0;
@@ -1063,6 +1064,19 @@ export const CreateClientDocumentResponse = zod.object({
   "contentType": zod.enum(['image/jpeg', 'image/png']),
   "createdAt": zod.coerce.date()
 })
+
+
+/**
+ * @summary Remove a client document
+ */
+
+
+
+export const DeleteClientDocumentParams = zod.object({
+  "id": zod.coerce.number().int().min(1)
+})
+
+export const DeleteClientDocumentResponse = zod.void()
 
 
 /**

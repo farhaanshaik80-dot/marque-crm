@@ -247,6 +247,7 @@ async function callGemini(
   prompt: string,
   image?: { mimeType: string; base64Data: string },
   modelOrder: string[] = FAST_MODEL_ORDER,
+  timeoutMs = 20_000,
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -260,22 +261,31 @@ async function callGemini(
 
   let lastError = "Gemini returned no content";
   for (const model of modelOrder) {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        signal: AbortSignal.timeout(20_000),
-        body: JSON.stringify({
-          contents: [{ role: "user", parts }],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: "application/json",
-          },
-        }),
-      },
-    );
-    const responseText = await response.text();
+    let response: Response;
+    let responseText: string;
+    try {
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          signal: AbortSignal.timeout(timeoutMs),
+          body: JSON.stringify({
+            contents: [{ role: "user", parts }],
+            generationConfig: {
+              temperature: 0.2,
+              responseMimeType: "application/json",
+            },
+          }),
+        },
+      );
+      responseText = await response.text();
+    } catch (fetchError) {
+      // A timeout or network error for one model shouldn't fail the whole request —
+      // move on and try the next model in the fallback list.
+      lastError = `Gemini ${model} request failed: ${fetchError instanceof Error ? fetchError.message : String(fetchError)}`;
+      continue;
+    }
     if (!response.ok) {
       lastError = `Gemini ${model} failed with status ${response.status}: ${responseText.slice(0, 240)}`;
       if (![404, 429, 500, 502, 503].includes(response.status)) break;
@@ -616,7 +626,7 @@ router.post("/documents/extract", async (req, res): Promise<void> => {
   try {
     const bytes = await objectStorageService.downloadObjectBytes(parsed.data.objectPath);
     const prompt = `You are reading a photo of a bill, receipt, or invoice — it may be handwritten, faded, creased, or otherwise hard to read. Look carefully, line by line, at every row, abbreviation, or shorthand entry (e.g. "Fr. B/pad", "Belt Ex", "Ac Com" are three SEPARATE items: front brake pad, belt exchange, AC component/compressor). Count how many distinct billable items are listed — most bills with more than one line have 2 or more. Each distinct part or service is its own entry; never combine multiple items into one description, even if their amounts are unclear or written close together. Return ONLY a JSON array, one entry per distinct item, with exactly these fields: documentType (one of service_bill, part_bill, parking_receipt — pick the closest fit; a warranty card for a part should be documentType "part_bill"), date (YYYY-MM-DD or null, same for every item on this bill), amountAed (number or null — that specific item's price if shown separately, otherwise null; do not split a single total across items unless individual prices are visible), vendorName (string, same for every item on this bill), description (string naming just that one item, expanded from any abbreviation, e.g. "Front brake pad" not "Fr. B/pad"), warrantyExpiry (YYYY-MM-DD or null, only if this item includes warranty coverage). Do not infer values that are not visible. Only return a single-entry array if the bill genuinely lists just one item.`;
-    const text = await callGemini(prompt, { mimeType: parsed.data.contentType, base64Data: bytes.toString("base64") }, ACCURATE_MODEL_ORDER);
+    const text = await callGemini(prompt, { mimeType: parsed.data.contentType, base64Data: bytes.toString("base64") }, ACCURATE_MODEL_ORDER, 45_000);
     const parsedJson = JSON.parse(text);
     const items = Array.isArray(parsedJson) ? parsedJson : [parsedJson];
     res.json(ExtractDocumentResponse.parse(items));

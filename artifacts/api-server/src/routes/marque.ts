@@ -104,97 +104,6 @@ function worse(a: Status, b: Status): Status {
   return a === "red" || b === "red" ? "red" : a === "amber" || b === "amber" ? "amber" : "green";
 }
 
-function dateForOffset(days: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-async function seedIfEmptyInternal(): Promise<void> {
-  const existing = await db.select({ id: clientsTable.id }).from(clientsTable).limit(1);
-  if (existing.length > 0) return;
-
-  const [olivia, marcus, leila] = await db
-    .insert(clientsTable)
-    .values([
-      {
-        name: "Olivia Hart",
-        phone: "+971 50 555 0148",
-        tier: "Signature",
-        retainerAmount: "25000",
-        clientSince: "2024-10-14",
-        notes: "Prefers discreet servicing and airport handovers.",
-      },
-      {
-        name: "Marcus Bell",
-        phone: "+971 55 555 0286",
-        tier: "Reserve",
-        retainerAmount: "15000",
-        clientSince: "2025-02-06",
-        notes: "Travels frequently; coordinate renewal windows in advance.",
-      },
-      {
-        name: "Leila Nasser",
-        phone: "+971 52 555 0312",
-        tier: "Signature",
-        retainerAmount: "22000",
-        clientSince: "2025-07-22",
-        notes: "Keeps a second vehicle in Abu Dhabi.",
-      },
-    ])
-    .returning();
-
-  await db.insert(vehiclesTable).values([
-    {
-      clientId: olivia.id,
-      model: "Range Rover Autobiography",
-      plate: "D 48192",
-      registrationExpiry: dateForOffset(8),
-      insuranceExpiry: dateForOffset(18),
-      lastServiceDate: dateForOffset(-174),
-      nextServiceDue: dateForOffset(6),
-      currentOdometer: 42000,
-      serviceIntervalKm: 3000,
-      nextServiceDueOdometer: 45000,
-    },
-    {
-      clientId: marcus.id,
-      model: "Porsche 911 Carrera GTS",
-      plate: "D 73610",
-      registrationExpiry: dateForOffset(42),
-      insuranceExpiry: dateForOffset(74),
-      lastServiceDate: dateForOffset(-112),
-      nextServiceDue: dateForOffset(21),
-      currentOdometer: 28000,
-      serviceIntervalKm: 2000,
-      nextServiceDueOdometer: 30000,
-    },
-    {
-      clientId: leila.id,
-      model: "Mercedes-Maybach S 680",
-      plate: "AD 11903",
-      registrationExpiry: dateForOffset(96),
-      insuranceExpiry: dateForOffset(5),
-      lastServiceDate: dateForOffset(-201),
-      nextServiceDue: dateForOffset(64),
-      currentOdometer: 51000,
-      serviceIntervalKm: 4000,
-      nextServiceDueOdometer: 55000,
-    },
-  ]);
-}
-
-let seedPromise: Promise<void> | null = null;
-
-function seedIfEmpty(): Promise<void> {
-  if (!seedPromise) {
-    seedPromise = seedIfEmptyInternal().finally(() => {
-      seedPromise = null;
-    });
-  }
-  return seedPromise;
-}
-
 async function getReminderRows(clientId?: number) {
   const query = db
     .select({
@@ -370,7 +279,6 @@ async function callGemini(prompt: string): Promise<string> {
 }
 
 router.get("/dashboard", async (_req, res): Promise<void> => {
-  await seedIfEmpty();
   const clients = await getClientSummaries();
   const reminders = await getReminderRows();
   const dueSoonCount = clients.reduce(
@@ -392,7 +300,6 @@ router.get("/dashboard", async (_req, res): Promise<void> => {
 });
 
 router.get("/clients", async (_req, res): Promise<void> => {
-  await seedIfEmpty();
   res.json(ListClientsResponse.parse(await getClientSummaries()));
 });
 

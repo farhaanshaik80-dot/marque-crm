@@ -6,6 +6,7 @@ import {
   useDiscardUpload,
   useExtractDocument,
   useCreateClientDocument,
+  getGetClientQueryKey,
   type ClientDetail,
   type DocumentType
 } from '@workspace/api-client-react';
@@ -207,6 +208,9 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
       // never be discarded from storage even if the remaining drafts are cleared.
       setPendingObjectPath(null);
       listDocsQuery.refetch();
+      // A part/service bill saved against a vehicle also creates a Flexible
+      // Maintenance entry server-side, so refresh the client/vehicle data too.
+      queryClient.invalidateQueries({ queryKey: getGetClientQueryKey(client.id) });
       removeDraftDoc(index);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to save document.');

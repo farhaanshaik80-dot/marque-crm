@@ -239,9 +239,14 @@ async function getClientDetail(id: number) {
   };
 }
 
+const FAST_MODEL_ORDER = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"];
+// For reading messy/handwritten photos, accuracy matters more than speed, so try the stronger models first.
+const ACCURATE_MODEL_ORDER = ["gemini-3.5-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-2.5-flash-lite"];
+
 async function callGemini(
   prompt: string,
   image?: { mimeType: string; base64Data: string },
+  modelOrder: string[] = FAST_MODEL_ORDER,
 ): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -254,7 +259,7 @@ async function callGemini(
   }
 
   let lastError = "Gemini returned no content";
-  for (const model of ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash-lite", "gemini-2.5-flash"]) {
+  for (const model of modelOrder) {
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
       {
@@ -610,8 +615,8 @@ router.post("/documents/extract", async (req, res): Promise<void> => {
   if (!parsed.success || !parsed.data.objectPath.startsWith("/objects/")) { res.status(400).json({ error: "A valid image object path is required" }); return; }
   try {
     const bytes = await objectStorageService.downloadObjectBytes(parsed.data.objectPath);
-    const prompt = `Inspect this document image, which may be a bill, receipt, or warranty card. If it lists more than one distinct billable item (e.g. several parts or services on one invoice), return one entry per item rather than combining them into a single description. Return ONLY a JSON array, where each entry has exactly these fields: documentType (one of service_bill, part_bill, parking_receipt — pick the closest fit; a warranty card for a part should be documentType "part_bill"), date (YYYY-MM-DD or null), amountAed (number or null, the amount for that specific line item), vendorName (string), description (string, naming just that one item, e.g. "Front brake pad"), warrantyExpiry (YYYY-MM-DD or null, only if this item includes warranty coverage). Do not infer missing values. If there is only one item, return an array with a single entry.`;
-    const text = await callGemini(prompt, { mimeType: parsed.data.contentType, base64Data: bytes.toString("base64") });
+    const prompt = `You are reading a photo of a bill, receipt, or invoice — it may be handwritten, faded, creased, or otherwise hard to read. Look carefully, line by line, at every row, abbreviation, or shorthand entry (e.g. "Fr. B/pad", "Belt Ex", "Ac Com" are three SEPARATE items: front brake pad, belt exchange, AC component/compressor). Count how many distinct billable items are listed — most bills with more than one line have 2 or more. Each distinct part or service is its own entry; never combine multiple items into one description, even if their amounts are unclear or written close together. Return ONLY a JSON array, one entry per distinct item, with exactly these fields: documentType (one of service_bill, part_bill, parking_receipt — pick the closest fit; a warranty card for a part should be documentType "part_bill"), date (YYYY-MM-DD or null, same for every item on this bill), amountAed (number or null — that specific item's price if shown separately, otherwise null; do not split a single total across items unless individual prices are visible), vendorName (string, same for every item on this bill), description (string naming just that one item, expanded from any abbreviation, e.g. "Front brake pad" not "Fr. B/pad"), warrantyExpiry (YYYY-MM-DD or null, only if this item includes warranty coverage). Do not infer values that are not visible. Only return a single-entry array if the bill genuinely lists just one item.`;
+    const text = await callGemini(prompt, { mimeType: parsed.data.contentType, base64Data: bytes.toString("base64") }, ACCURATE_MODEL_ORDER);
     const parsedJson = JSON.parse(text);
     const items = Array.isArray(parsedJson) ? parsedJson : [parsedJson];
     res.json(ExtractDocumentResponse.parse(items));
@@ -648,6 +653,17 @@ router.post("/clients/:id/documents", async (req, res): Promise<void> => {
   try {
     const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(body.data.objectPath, { owner: req.user.id, visibility: "private" });
     const [row] = await db.insert(clientDocumentsTable).values({ clientId: client.id, vehicleId: body.data.vehicleId ?? null, documentType: body.data.documentType, documentDate: formatDate(body.data.date), amountAed: String(body.data.amountAed), vendorName: body.data.vendorName, description: body.data.description, warrantyExpiry: body.data.warrantyExpiry ? formatDate(body.data.warrantyExpiry) : null, objectPath, originalFileName: body.data.originalFileName, contentType: body.data.contentType }).returning();
+    // A part or service bill logged against a specific vehicle also shows up as a cost entry
+    // in that vehicle's Flexible Maintenance list, so it doesn't only live in Documents.
+    if (body.data.vehicleId != null && (body.data.documentType === "part_bill" || body.data.documentType === "service_bill")) {
+      await db.insert(maintenanceItemsTable).values({
+        vehicleId: body.data.vehicleId,
+        itemType: "payment",
+        name: body.data.description || body.data.vendorName,
+        costAed: String(body.data.amountAed),
+        dateRecorded: formatDate(body.data.date),
+      });
+    }
     res.status(201).json(CreateClientDocumentResponse.parse({ ...row, date: row.documentDate, amountAed: Number(row.amountAed) }));
   } catch (error) { req.log.error({ err: error }, "Document save failed"); res.status(400).json({ error: "Object could not be secured" }); }
 });

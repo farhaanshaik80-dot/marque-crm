@@ -610,9 +610,11 @@ router.post("/documents/extract", async (req, res): Promise<void> => {
   if (!parsed.success || !parsed.data.objectPath.startsWith("/objects/")) { res.status(400).json({ error: "A valid image object path is required" }); return; }
   try {
     const bytes = await objectStorageService.downloadObjectBytes(parsed.data.objectPath);
-    const prompt = `Inspect this document image and return ONLY JSON with exactly these fields: documentType (one of service_bill, part_bill, warranty_card, parking_receipt), date (YYYY-MM-DD or null), amountAed (number or null), vendorName (string), description (string), warrantyExpiry (YYYY-MM-DD or null, only warranty cards). Do not infer missing values.`;
+    const prompt = `Inspect this document image, which may be a bill, receipt, or warranty card. If it lists more than one distinct billable item (e.g. several parts or services on one invoice), return one entry per item rather than combining them into a single description. Return ONLY a JSON array, where each entry has exactly these fields: documentType (one of service_bill, part_bill, parking_receipt — pick the closest fit; a warranty card for a part should be documentType "part_bill"), date (YYYY-MM-DD or null), amountAed (number or null, the amount for that specific line item), vendorName (string), description (string, naming just that one item, e.g. "Front brake pad"), warrantyExpiry (YYYY-MM-DD or null, only if this item includes warranty coverage). Do not infer missing values. If there is only one item, return an array with a single entry.`;
     const text = await callGemini(prompt, { mimeType: parsed.data.contentType, base64Data: bytes.toString("base64") });
-    res.json(ExtractDocumentResponse.parse(JSON.parse(text)));
+    const parsedJson = JSON.parse(text);
+    const items = Array.isArray(parsedJson) ? parsedJson : [parsedJson];
+    res.json(ExtractDocumentResponse.parse(items));
   } catch (error) {
     req.log.error({ err: error }, "Document extraction failed");
     const message = error instanceof Error ? error.message : "Unknown error";

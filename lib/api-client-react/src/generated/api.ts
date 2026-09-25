@@ -1501,7 +1501,7 @@ export const getExtractDocumentUrl = () => {
 /**
  * @summary Extract structured data from a document
  */
-export const extractDocument = async (documentExtractionInput: DocumentExtractionInput, options?: Parameters<typeof customFetch>[1]): Promise<DocumentExtraction> => {
+export const extractDocument = async (documentExtractionInput: DocumentExtractionInput, options?: Parameters<typeof customFetch>[1]): Promise<DocumentExtraction[]> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1517,7 +1517,7 @@ export const extractDocument = async (documentExtractionInput: DocumentExtractio
     }
     return headers;
   };
-return customFetch<DocumentExtraction>(getExtractDocumentUrl(),
+return customFetch<DocumentExtraction[]>(getExtractDocumentUrl(),
   {
     ...options,
     method: 'POST',

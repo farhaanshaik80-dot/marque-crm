@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useListClientDocuments,
@@ -60,8 +60,8 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
   const [pendingObjectPath, setPendingObjectPath] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'extracting' | 'extracted' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState<string>('');
-  
-  const [draftDoc, setDraftDoc] = useState<{
+
+  type DraftDoc = {
     documentType: DocumentType;
     date: string;
     amountAed: number;
@@ -72,7 +72,22 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
     objectPath: string;
     originalFileName: string;
     contentType: 'image/jpeg' | 'image/png';
-  } | null>(null);
+  };
+
+  const [draftDocs, setDraftDocs] = useState<DraftDoc[] | null>(null);
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
+
+  const updateDraftDoc = (index: number, patch: Partial<DraftDoc>) => {
+    setDraftDocs((prev) => prev ? prev.map((d, i) => (i === index ? { ...d, ...patch } : d)) : prev);
+  };
+
+  const removeDraftDoc = (index: number) => {
+    setDraftDocs((prev) => {
+      if (!prev) return prev;
+      const next = prev.filter((_, i) => i !== index);
+      return next.length ? next : null;
+    });
+  };
 
   const resetDraft = (discard = true) => {
     if (discard && pendingObjectPath) {
@@ -83,7 +98,7 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setUploadState('idle');
-    setDraftDoc(null);
+    setDraftDocs(null);
     setErrorMsg('');
   };
 
@@ -141,7 +156,7 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
       setPendingObjectPath(urlRes.objectPath);
       setUploadState('extracting');
 
-      // 3. Extract Document Data
+      // 3. Extract Document Data (may return multiple line items from one bill)
       const extRes = await extractDocument.mutateAsync({
         data: {
           objectPath: urlRes.objectPath,
@@ -149,18 +164,20 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
         }
       });
 
-      setDraftDoc({
-        documentType: extRes.documentType,
-        date: extRes.date || '',
-        amountAed: extRes.amountAed || 0,
-        vendorName: extRes.vendorName || '',
-        description: extRes.description || '',
-        warrantyExpiry: extRes.warrantyExpiry,
+      const items = extRes.length ? extRes : [{ documentType: 'service_bill' as DocumentType, date: null, amountAed: null, vendorName: '', description: '', warrantyExpiry: null }];
+
+      setDraftDocs(items.map((item) => ({
+        documentType: item.documentType,
+        date: item.date || '',
+        amountAed: item.amountAed || 0,
+        vendorName: item.vendorName || '',
+        description: item.description || '',
+        warrantyExpiry: item.warrantyExpiry,
         vehicleId: null,
         objectPath: urlRes.objectPath,
         originalFileName: file.name,
         contentType: file.type as 'image/jpeg' | 'image/png'
-      });
+      })));
       setUploadState('extracted');
 
     } catch (err: any) {
@@ -173,24 +190,53 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
     }
   };
 
-  const handleSave = async () => {
-    if (!draftDoc) return;
+  const handleSaveOne = async (index: number) => {
+    const doc = draftDocs?.[index];
+    if (!doc) return;
+    setSavingIndex(index);
     try {
       await createDocument.mutateAsync({
         id: client.id,
         data: {
-          ...draftDoc,
-          amountAed: Number(draftDoc.amountAed),
-          vehicleId: draftDoc.vehicleId || null,
-          warrantyExpiry: draftDoc.documentType === 'warranty_card' ? draftDoc.warrantyExpiry : null,
+          ...doc,
+          amountAed: Number(doc.amountAed),
+          vehicleId: doc.vehicleId || null,
         }
       });
+      // The uploaded image is now referenced by a saved document, so it must
+      // never be discarded from storage even if the remaining drafts are cleared.
+      setPendingObjectPath(null);
       listDocsQuery.refetch();
-      resetDraft(false);
+      removeDraftDoc(index);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to save document.');
+    } finally {
+      setSavingIndex(null);
     }
   };
+
+  const handleSaveAll = async () => {
+    if (!draftDocs?.length) return;
+    for (let i = draftDocs.length - 1; i >= 0; i--) {
+      await handleSaveOne(i);
+    }
+  };
+
+  // Once the last draft line item is saved or discarded, close the upload panel.
+  // If nothing was ever saved (pendingObjectPath is still set), discard the orphaned upload.
+  useEffect(() => {
+    if (uploadState === 'extracted' && draftDocs === null) {
+      if (pendingObjectPath) {
+        discardUpload.mutate({ data: { objectPath: pendingObjectPath } });
+      }
+      setPendingObjectPath(null);
+      setUploadState('idle');
+      setUploadFile(null);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftDocs, uploadState]);
 
   const groupedDocs = useMemo(() => {
     if (!listDocsQuery.data) return {};
@@ -204,7 +250,7 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
   const docTypeLabels: Record<string, string> = {
     service_bill: 'Service Bills',
     part_bill: 'Part Bills',
-    warranty_card: 'Warranty Cards',
+    warranty_card: 'Warranty Cards', // kept for any documents saved before this label was retired
     parking_receipt: 'Parking Receipts'
   };
 
@@ -243,66 +289,80 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
               </div>
             )}
 
-            {uploadState === 'extracted' && draftDoc && (
-              <div className="grid gap-3">
-                <h4 className="font-serif text-xl mb-1">Verify Details</h4>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="field-label sm:col-span-2">
-                    Document Type
-                     <select className="field-input" value={draftDoc.documentType} onChange={(e) => setDraftDoc({ ...draftDoc, documentType: e.target.value as DocumentType, warrantyExpiry: e.target.value === 'warranty_card' ? draftDoc.warrantyExpiry : null })}>
-                      <option value="service_bill">Service Bill</option>
-                      <option value="part_bill">Part Bill</option>
-                      <option value="warranty_card">Warranty Card</option>
-                      <option value="parking_receipt">Parking Receipt</option>
-                    </select>
-                  </label>
-                  
-                  <label className="field-label">
-                    Date
-                    <input required type="date" className="field-input" value={draftDoc.date} onChange={(e) => setDraftDoc({ ...draftDoc, date: e.target.value })} />
-                  </label>
-
-                  <label className="field-label">
-                    Amount (AED)
-                    <input type="number" className="field-input" value={draftDoc.amountAed} onChange={(e) => setDraftDoc({ ...draftDoc, amountAed: Number(e.target.value) })} />
-                  </label>
-
-                  <label className="field-label sm:col-span-2">
-                    Vendor Name
-                    <input className="field-input" value={draftDoc.vendorName} onChange={(e) => setDraftDoc({ ...draftDoc, vendorName: e.target.value })} />
-                  </label>
-
-                  <label className="field-label sm:col-span-2">
-                    Description
-                    <input className="field-input" value={draftDoc.description} onChange={(e) => setDraftDoc({ ...draftDoc, description: e.target.value })} />
-                  </label>
-
-                  {draftDoc.documentType === 'warranty_card' && (
-                    <label className="field-label sm:col-span-2">
-                      Warranty Expiry
-                      <input type="date" className="field-input" value={draftDoc.warrantyExpiry || ''} onChange={(e) => setDraftDoc({ ...draftDoc, warrantyExpiry: e.target.value })} />
-                    </label>
+            {uploadState === 'extracted' && draftDocs && draftDocs.length > 0 && (
+              <div className="grid gap-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-serif text-xl">
+                    Verify Details{draftDocs.length > 1 ? ` (${draftDocs.length} items found on this bill)` : ''}
+                  </h4>
+                  {draftDocs.length > 1 && (
+                    <button type="button" onClick={handleSaveAll} disabled={savingIndex !== null} className="inline-flex items-center gap-2 rounded-sm bg-primary px-3 py-2 text-[10px] font-bold uppercase tracking-[.13em] text-primary-foreground disabled:opacity-50">
+                      {savingIndex !== null ? <LoaderCircle size={13} className="animate-spin" /> : <Check size={13} />} Save all {draftDocs.length}
+                    </button>
                   )}
-
-                  <label className="field-label sm:col-span-2">
-                    Associated Vehicle (Optional)
-                    <select className="field-input" value={draftDoc.vehicleId || ''} onChange={(e) => setDraftDoc({ ...draftDoc, vehicleId: e.target.value ? Number(e.target.value) : null })}>
-                      <option value="">None</option>
-                      {client.vehicles.map(v => (
-                        <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
-                      ))}
-                    </select>
-                  </label>
                 </div>
 
-                <div className="flex gap-2 justify-end mt-4">
-                  <button type="button" onClick={() => resetDraft()} className="inline-flex items-center gap-1 rounded-sm px-4 py-2 text-xs font-bold uppercase tracking-[.13em] text-muted-foreground hover:bg-muted">
-                    <X size={14} /> Clear
-                  </button>
-                  <button type="button" onClick={handleSave} disabled={createDocument.isPending || !draftDoc.date} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[.13em] text-primary-foreground disabled:opacity-50">
-                    {createDocument.isPending ? <LoaderCircle size={14} className="animate-spin" /> : <Check size={14} />} Confirm & Save
-                  </button>
-                </div>
+                {draftDocs.map((draftDoc, index) => (
+                  <div key={index} className="grid gap-3 rounded-sm border border-border/70 p-4">
+                    {draftDocs.length > 1 && (
+                      <p className="text-[10px] font-bold uppercase tracking-[.13em] text-muted-foreground">Item {index + 1}</p>
+                    )}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="field-label sm:col-span-2">
+                        Document Type
+                        <select className="field-input" value={draftDoc.documentType} onChange={(e) => updateDraftDoc(index, { documentType: e.target.value as DocumentType })}>
+                          <option value="service_bill">Service Bill</option>
+                          <option value="part_bill">Part Bill</option>
+                          <option value="parking_receipt">Parking Receipt</option>
+                        </select>
+                      </label>
+
+                      <label className="field-label">
+                        Date
+                        <input required type="date" className="field-input" value={draftDoc.date} onChange={(e) => updateDraftDoc(index, { date: e.target.value })} />
+                      </label>
+
+                      <label className="field-label">
+                        Amount (AED)
+                        <input type="number" className="field-input" value={draftDoc.amountAed} onChange={(e) => updateDraftDoc(index, { amountAed: Number(e.target.value) })} />
+                      </label>
+
+                      <label className="field-label sm:col-span-2">
+                        Vendor Name
+                        <input className="field-input" value={draftDoc.vendorName} onChange={(e) => updateDraftDoc(index, { vendorName: e.target.value })} />
+                      </label>
+
+                      <label className="field-label sm:col-span-2">
+                        Description
+                        <input className="field-input" value={draftDoc.description} onChange={(e) => updateDraftDoc(index, { description: e.target.value })} />
+                      </label>
+
+                      <label className="field-label sm:col-span-2">
+                        Warranty Expiry (Optional)
+                        <input type="date" className="field-input" value={draftDoc.warrantyExpiry || ''} onChange={(e) => updateDraftDoc(index, { warrantyExpiry: e.target.value || null })} />
+                      </label>
+
+                      <label className="field-label sm:col-span-2">
+                        Associated Vehicle (Optional)
+                        <select className="field-input" value={draftDoc.vehicleId || ''} onChange={(e) => updateDraftDoc(index, { vehicleId: e.target.value ? Number(e.target.value) : null })}>
+                          <option value="">None</option>
+                          {client.vehicles.map(v => (
+                            <option key={v.id} value={v.id}>{v.model} ({v.plate})</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="flex gap-2 justify-end mt-2">
+                      <button type="button" onClick={() => removeDraftDoc(index)} className="inline-flex items-center gap-1 rounded-sm px-4 py-2 text-xs font-bold uppercase tracking-[.13em] text-muted-foreground hover:bg-muted">
+                        <X size={14} /> {draftDocs.length > 1 ? 'Discard this item' : 'Clear'}
+                      </button>
+                      <button type="button" onClick={() => handleSaveOne(index)} disabled={savingIndex !== null || !draftDoc.date} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-xs font-bold uppercase tracking-[.13em] text-primary-foreground disabled:opacity-50">
+                        {savingIndex === index ? <LoaderCircle size={14} className="animate-spin" /> : <Check size={14} />} Confirm & Save
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -353,6 +413,7 @@ function ClientDocumentsContent({ client }: { client: ClientDetail }) {
                           </div>
                           <p className="mt-1 text-sm text-foreground/80">{doc.description}</p>
                           {v && <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[.1em] text-muted-foreground">Vehicle: {v.model} ({v.plate})</p>}
+                          {doc.warrantyExpiry && <p className="mt-1.5 text-[11px] font-bold uppercase tracking-[.1em] text-amber-700">Warranty until {format(new Date(`${doc.warrantyExpiry}T00:00:00`), 'dd MMM yyyy')}</p>}
                         </div>
                         <div className="flex items-center gap-4 whitespace-nowrap">
                           <span className="font-mono text-sm font-medium">AED {doc.amountAed.toLocaleString()}</span>

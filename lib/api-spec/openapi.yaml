@@ -308,11 +308,13 @@ paths:
               $ref: "#/components/schemas/DocumentExtractionInput"
       responses:
         "200":
-          description: Extracted document data
+          description: Extracted document line items (a single receipt/bill may contain more than one billable item)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DocumentExtraction"
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentExtraction"
   /clients/{id}/documents:
     get:
       tags: [clients]
@@ -789,7 +791,7 @@ components:
         message: { type: string }
     DocumentType:
       type: string
-      enum: [service_bill, part_bill, warranty_card, parking_receipt]
+      enum: [service_bill, part_bill, parking_receipt]
     DocumentExtractionInput:
       type: object
       required: [objectPath, contentType]

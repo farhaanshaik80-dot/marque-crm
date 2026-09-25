@@ -974,14 +974,15 @@ export const extractDocumentResponseAmountAedMin = 0;
 
 
 
-export const ExtractDocumentResponse = zod.object({
-  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+export const ExtractDocumentResponseItem = zod.object({
+  "documentType": zod.enum(['service_bill', 'part_bill', 'parking_receipt']),
   "date": zod.coerce.date().nullable(),
   "amountAed": zod.number().min(extractDocumentResponseAmountAedMin).nullable(),
   "vendorName": zod.string(),
   "description": zod.string(),
   "warrantyExpiry": zod.coerce.date().nullable()
 })
+export const ExtractDocumentResponse = zod.array(ExtractDocumentResponseItem)
 
 
 /**
@@ -1002,7 +1003,7 @@ export const ListClientDocumentsResponseItem = zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int().nullable(),
-  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "documentType": zod.enum(['service_bill', 'part_bill', 'parking_receipt']),
   "date": zod.coerce.date(),
   "amountAed": zod.number().min(listClientDocumentsResponseAmountAedMin),
   "vendorName": zod.string(),
@@ -1031,7 +1032,7 @@ export const createClientDocumentBodyAmountAedMin = 0;
 
 
 export const CreateClientDocumentBody = zod.object({
-  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "documentType": zod.enum(['service_bill', 'part_bill', 'parking_receipt']),
   "date": zod.coerce.date(),
   "amountAed": zod.number().min(createClientDocumentBodyAmountAedMin),
   "vendorName": zod.string(),
@@ -1051,7 +1052,7 @@ export const CreateClientDocumentResponse = zod.object({
   "id": zod.number().int(),
   "clientId": zod.number().int(),
   "vehicleId": zod.number().int().nullable(),
-  "documentType": zod.enum(['service_bill', 'part_bill', 'warranty_card', 'parking_receipt']),
+  "documentType": zod.enum(['service_bill', 'part_bill', 'parking_receipt']),
   "date": zod.coerce.date(),
   "amountAed": zod.number().min(createClientDocumentResponseAmountAedMin),
   "vendorName": zod.string(),
